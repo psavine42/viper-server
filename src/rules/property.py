@@ -1,6 +1,6 @@
 from .graph import Node
 from uuid import uuid4
-
+from .opers import Condition
 
 class Walker(object):
     def __init__(self, name, **kwargs):
@@ -20,25 +20,12 @@ class Walker(object):
         return
 
 
-class Property(object):
-    def __init__(self, name, *conds, fn=None, node=True, edge=True):
+class Property(Condition):
+    def __init__(self, name, cond):
+        super(Property, self).__init__()
         self._name = name
-        self._id = uuid4()
-        self._on_node = node
-        self._on_edge = edge
-        self._write_fn = fn
+        self._base = cond
         self._range = -1
-        self._sucs = []
-        self._pred = []
-        self._conds = []
-        for cond in conds:
-            if isinstance(cond, Property):
-                self.add_pred(cond)
-            else:
-                self._conds.append(cond)
-    @property
-    def IConditional(self):
-        return True
 
     @property
     def name(self):
@@ -47,29 +34,6 @@ class Property(object):
     @property
     def id(self):
         return '<Prop>:<' + self.name + ">:" + str(self._id)
-
-    def pre_conditions(self):
-        return self._pred + self._conds
-
-    def post_conditions(self):
-        return self._sucs
-
-    def add_pred(self, other):
-        other._sucs.append(self)
-        self._pred.append(other)
-
-    def add_sucs(self, other):
-        self._sucs.append(other)
-        other._pred.append(self)
-
-    def is_complete(self):
-        """
-        complete is when self is done,
-        and
-        :return:
-        """
-
-        pass
 
     def check_conditions(self, node):
         """
@@ -93,31 +57,17 @@ class Property(object):
                 return False
         return True
 
-    def _write_to(self, node, res):
-        node.write(self._name, res)
+    def on_eval(self, node, res):
+        if res is not None:
+            node.write(self._name, res)
 
     def apply(self, node):
-        res = self.check_conditions(node)
-        if res is True:
-            if self._write_fn is not None:
-                data = self._write_fn(node)
-                node.write(self._name, data)
-                return res
-        node.write(self._name, res)
+        self.check_conditions(node)
+        res = self._base.apply(node)
+        self.on_eval(node, res)
         return res
-
-    def __call__(self, node):
-        self.apply(node)
 
     def __str__(self):
         st = '<Prop>:<{}>'.format(self._name)
         return st
 
-    def walk1(self, node):
-        for n in iter(node):
-            yield self.__call__(n)
-
-    def walk2(self, node):
-        for n in node.__iter__():
-            res = self.apply(n)
-            yield (res, n)

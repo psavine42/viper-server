@@ -7,41 +7,54 @@ from .opers import *
 from operator import eq
 
 
+
 class EngineHeurFP(object):
     def __init__(self):
-        is_symbol = HAS('symbol')
-        is_source = IF('npred', eq, 0)
+
+        is_source = IF('npred', eq, 0, var='source')
+        one_pred = IF('npred', eq, 1)
+        mutex(is_source, one_pred)
 
         is_endpnt = IF('nsucs', eq, 0)
-
         one_succ = IF('nsucs', eq, 1)
-        one_pred = IF('npred', eq, 1)
         two_sucs = IF('nsucs', eq, 2)
+        mutex(is_endpnt, one_succ, two_sucs)
 
-        is_arc = IF('symbol', eq, GeomType.ARC)
-        is_circle = IF('symbol', eq, GeomType.CIRCLE)
+        no_sym = NOT(HAS('type'))
+        has_sym = HAS('type')
+        mutex(no_sym, has_sym)
 
-        is_split = AND.as_prop('split', one_pred, two_sucs)
+        is_sym = AND(has_sym, IF('type', eq, GeomType.SYMBOL))
+        is_arc = AND(has_sym, IF('type', eq, GeomType.ARC))
+        is_circle = AND(has_sym, IF('type', eq, GeomType.CIRCLE))
+        mutex(is_circle, is_arc, no_sym, is_sym)
 
-        circle_or_symbol = OR.as_prop('symbol-like', is_symbol, is_circle, is_arc)
+        symbolic = OR(is_circle, is_arc, is_sym, var='symbol-like')
 
-        vbranch = AND.as_prop('vbranch', is_split, circle_or_symbol)
-        hbranch = AND.as_prop('hbranch', is_split, NOT(vbranch))
+        is_split = AND(one_pred, two_sucs, var='split')
+        vbranch = AND(is_split, symbolic, var='vbranch')
+        hbranch = AND(is_split, NOT(symbolic), var='hbranch')
+        mutex(vbranch, hbranch)
 
-        isElbow = AND.as_prop('elbow', one_pred, one_succ, NOT(circle_or_symbol))
-        isUpright = AND.as_prop('vHead', one_pred, one_succ, circle_or_symbol)
-        isDrop = Property('dHead', AND(is_endpnt, circle_or_symbol))
+        isElbow = AND(one_pred, one_succ, NOT(symbolic), var='elbow')
+        UpElbow = AND(one_pred, one_succ, symbolic, var='elbow+rise')
+        mutex(isElbow, UpElbow)
 
+        # isUpright = AND(is_endpnt, symbolic, var='vHead')
+        isDrop = AND(is_endpnt, symbolic, var='dHead')
+        other_end = AND(is_endpnt, NOT(symbolic), var='unlabeled_end')
+        mutex(isDrop, other_end)
 
-        riser = INSUCS.as_prop('IsRiser', isDrop, lambda xs: xs.count(True) == 1)
+        # riser = INSUCS(isDrop, lambda xs: xs.count(True) == 1, var='IsRiser')
 
-        Source = Property('source', is_source)
-        rt = OR.as_prop('solved', isUpright, Source, riser, isDrop, vbranch, hbranch, isElbow)
+        rt = Mutex(is_source, other_end, UpElbow,
+                   isDrop, vbranch, hbranch, isElbow, var='solved')
         self.root = rt
 
     @property
     def final_labels(self):
-        return ['IsRiser', 'dHead', 'elbow', 'split', 'vbranch', 'vHead', 'source']
+        return ['IsRiser', 'dHead', 'elbow',  'unlabeled_end', 'elbow+rise',
+                'vbranch', 'vHead', 'source', 'hbranch']
 
     def run(self, root):
         return

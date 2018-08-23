@@ -1,15 +1,22 @@
 
-import lib.figures as F
-from src.geom import MepCurve2d
-from collections import defaultdict as ddict
 import networkx as nx
-from shapely import geometry
 import numpy as np
+
+from src.geom import MepCurve2d, rebuild_ls, rebuild, split_ls, to_Nd, to_mls
+from collections import defaultdict as ddict
+
 import src.walking as walking
 from src.geomType import GeomType
-import src.visualize
-from shapely.ops import nearest_points
-from shapely.ops import linemerge
+
+from src import visualize
+
+from shapely.geometry import Point, LineString, MultiLineString
+from shapely.ops import linemerge, nearest_points, shared_paths
+
+from src.rules.graph import Node, Edge
+import src.propogate.geom_prop as gp
+import src.propogate.propagators as ppg
+import pprint
 
 class GeomFilter(object):
     def __init__(self):
@@ -35,7 +42,7 @@ class System(object):
 
     # Util---------------------------------------------
     def gplot(self, **kwargs):
-        src.visualize.gplot(self.G, **kwargs)
+        visualize.gplot(self.G, **kwargs)
 
     def reverse_edge(self, src, tgt):
         data = self.G.get_edge_data(src, tgt, None)
@@ -73,8 +80,8 @@ class System(object):
             p1, p2 = pred[1], pred[0]
         else:
             return
-        pnt = geometry.Point(el)
-        if pnt.within(geometry.LineString([p1, p2]).buffer(.01)) is True:
+        pnt = Point(el)
+        if pnt.within(LineString([p1, p2]).buffer(.01)) is True:
             self.G.remove_node(el)
             self.G.add_edge(p1, p2)
 
@@ -88,9 +95,7 @@ class System(object):
         """ counter keeps track of build order """
         nx.set_node_attributes(self.G, {el: {'order': self._node_ord}})
         self._node_ord += 1
-        #if len(sucs) == 0:
-        #    self._endpoints.append(el)
-        #else:
+
         for p in sucs:
             crv = MepCurve2d(el, p)
             nx.set_edge_attributes(
@@ -141,7 +146,7 @@ class System(object):
         count = len(self.G)
         done = False
         while not done:
-            print('iter', count)
+            # print('iter', count)
             self.walk(source, self._remove_colinear_fn)
             self.walk(source, self._remove_duplicates)
             if len(self.G) == count:
@@ -190,9 +195,9 @@ class System(object):
         """
 
         if pt is None:
-            pt = geometry.Point(0, 0, 0)
+            pt = Point(0, 0, 0)
         elif isinstance(pt, tuple):
-            pt = geometry.Point(*list(pt))
+            pt = Point(*list(pt))
         root, dist, n = None, 1e10, norm
         ind1 = ddict(set)
 
@@ -214,7 +219,7 @@ class System(object):
                     if not px2.is_empty:  # and isinstance(px2, geometry.LineString):
                         add_subseg(crv, l, list(px2.coords))
 
-        p1, p2 = [geometry.Point(x) for x in root.points]
+        p1, p2 = [Point(x) for x in root.points]
         self._root = tuple(list(p1.coords if pt.distance(p1) < pt.distance(p2) else p2.coords)[0])
         self._keep_layers.append(root.layer)
         return ind1
@@ -245,7 +250,6 @@ class System(object):
         """
         segments.sort()
         line_dict = {l.id: l for l in segments}
-        print('num segs: ', len(segments))
         ind1 = self.get_intersects(segments, pt=root, norm=ext)
         self.add_to_graph(line_dict, ind1)
 
@@ -261,13 +265,11 @@ class System(object):
     def bake(self, root=None):
         if root is None:
             root = self._root
-
-        self.stat()
         self._write_symbols()
-        self.remove_colinear(root) # clean up
-        self.compute_direction(root) # bake
+        self.remove_colinear(root)      # clean up
+        self.compute_direction(root)    # bake
         self.bake_attributes(root)
-
+        self.stat()
         return self
 
 
@@ -277,7 +279,7 @@ class SystemV2(System):
         super(SystemV2, self).__init__(**kwargs)
 
     def gplot(self, **kwargs):
-        src.visualize.ord_plot(self.G, **kwargs)
+        visualize.ord_plot(self.G, **kwargs)
 
     def annotate(self, pnt, data):
         nx.set_node_attributes(self.G, {pnt: data})
@@ -287,7 +289,7 @@ class SystemV2(System):
         self.best_cord = None
 
         def near_fn(el, pred, sucs, seen):
-            dist = pt.distance(geometry.Point(el))
+            dist = pt.distance(Point(el))
             if dist < self.best_dist:
                 self.best_dist = dist
                 self.best_cord = el
@@ -300,3 +302,236 @@ class SystemV2(System):
             npg, dist = self._nearest(sym)
             if dist < tol:
                 self.annotate(npg, sym.to_dict)
+
+
+class SystemV3(System):
+    def __init__(self, **kwargs):
+        self._node_dict = dict()
+        super(SystemV3, self).__init__(**kwargs)
+
+    def filter_keep(self, lines, pt):
+        if pt is None:
+            pt = Point(0, 0, 0)
+        elif isinstance(pt, tuple):
+            pt = Point(*list(pt))
+
+        root, dist = None, 1e10
+        for crv in lines:
+            if pt.distance(crv) < dist:
+                root, dist = crv, pt.distance(crv)
+        self._keep_layers.append(root.layer)
+        fls = []
+        for l in lines:
+            if l.layer == root.layer or l.type == GeomType.SYMBOL:
+                fls.append(l)
+        return fls
+
+    def get_intersects(self, lines, pt=None, norm=0.1):
+        lines = self.filter_keep(lines, pt)
+        mls_ob = linemerge(lines)
+        root, _ = nearest_points(mls_ob, Point(pt))
+        root = to_Nd(root, 3)
+
+        merged = list(mls_ob)
+        print('building', len(merged))
+        dists = ddict(dict)
+        node_dict = dict()
+        acomps = []
+        for i in range(len(merged)):
+            ndict = dict()
+            cords = list(merged[i].coords)
+            for k in range(len(cords)):
+                pnt = cords[k]
+                if pnt not in ndict:
+                    ndict[pnt] = Node(pnt)
+                if k > 0:
+                    ndict[cords[k - 1]].connect_to(ndict[pnt])
+            acomps.append(ndict)
+            for j in range(i+1, len(merged)):
+                dist = merged[i].distance(merged[j])
+                dists[i][j] = dist
+                dists[j][i] = dist
+
+        q = [0]
+        while q and len(dists) != 1 and len(acomps) != 1:
+            i = q.pop()
+            mk, mv = min(dists[i].items(), key=lambda x: x[1])
+
+            this_comp = acomps[i]
+            othr_comp = acomps[mk]
+
+            # compute nearest point
+            pi, po = [to_Nd(x) for x in nearest_points(merged[i], merged[mk])]
+            in_this = pi in this_comp
+            in_othr = po in othr_comp
+
+            if in_this and in_othr:
+                this_comp[pi].connect_to(othr_comp[po])
+
+            elif in_this and not in_othr:
+                if pi != po:
+                    new_node = Node(po)
+                    pa = gp.PointAdder(new_node)
+                    pa(list(othr_comp.values())[0])
+                    this_comp[pi].connect_to(new_node)
+                else:
+                    pa = gp.PointAdder(this_comp[pi])
+                    pa(list(othr_comp.values())[0])
+
+            elif not in_this and in_othr:
+                if pi != po:
+                    new_node = Node(pi)
+                    pa = gp.PointAdder(new_node)
+                    pa((list(this_comp.values())[0]))
+                    othr_comp[po].connect_to(new_node)
+                else:
+                    pa = gp.PointAdder(othr_comp[po])
+                    pa(list(this_comp.values())[0])
+
+            else:
+                print('ERR')
+
+            for k, nd in othr_comp.items():   # move nodes to current comp
+                this_comp[k] = nd
+
+            merged[i] = merged[i].union(merged[mk]) # update geometry
+            merged[mk] = None                       # remove previous
+            acomps[mk] = None                       # remove previous
+
+            for k, v in dists[mk].items():
+                if k in dists[i]:
+                    min_dist = min([dists[i][k], v])
+                    dists[i][k] = min_dist
+                dists[k].pop(mk)
+            dists.pop(mk)
+
+            if len(dists) == 1:
+                break
+
+            nextk, bestm = None, 1e10
+            for k, v in dists.items():
+                mk, mv = min(v.items(), key=lambda x: x[1])
+                if mv < bestm:
+                    nextk = k
+                    bestm = mv
+                if mv == 0:
+                    break
+            q.append(nextk)
+
+        print('{} components, {} nodes'.format(len(acomps), sum([len(x) for x in acomps if x])))
+        for i in range(len(acomps)):
+            if acomps[i] is None:
+                continue
+            for k, v in acomps[i].items():
+                if v.id not in node_dict:
+                    if v.geom == root:
+                        self._root = v
+                    # node_dict[v.id] = v
+                else:
+                    print('ovelap', v)
+
+        print('{} components, {} nodes'.format(len(acomps), len(node_dict)))
+        assert self._root is not None
+        gp.EdgeRouter()(self._root)
+        return node_dict
+
+    def add_to_graph(self, line_dict, indexes):
+        # intersect_ids_to_pts, points_to_ids, id_to_id, pts_to_pts = indexes
+
+        seen = set()
+        for k, vs in indexes.items():
+
+            seen.add(k)
+            if k not in self._node_dict:
+                self._node_dict[k] = Node(k)
+
+            for v in vs:
+                if v not in self._node_dict:
+                    self._node_dict[v] = Node(v)
+                # if self._node_dict[v] not in self._node_dict[k].neighbors():
+                self._node_dict[k].connect_to(self._node_dict[v])
+
+        print(self._root)
+        print(len(self._node_dict))
+        p1 = self._root
+        self._root = self._node_dict [p1]
+
+    def build(self, segments=[], root=None, ext=0.2):
+        line_dict = {l.id: l for l in segments}
+        indexes = self.get_intersects(segments, pt=root, norm=ext)
+
+    def gplot(self, **kwargs):
+        G = nodes_to_nx(self._root, **kwargs)
+        visualize.gplot(G)
+
+    def aplot(self, **kwargs):
+        G = sys_to_nx(self)
+        visualize.gplot(G, **kwargs)
+
+    def bake(self, root=None):
+        baker = ppg.Chain(
+            ppg.EdgeDirector(),
+            ppg.GraphTrim(),
+            ppg.DirectionWriter(),
+            ppg.DistanceFromSource(),
+            ppg.BuildOrder(),
+            ppg.DistanceFromEnd(),
+        )
+
+        baker(self._root)
+        return self
+
+
+def nx_to_nodes(system):
+    G, root = system.G, system.root
+    seen, q = set(), [root]
+    tmp = {}
+    while q:
+        el = q.pop(0)
+        if el not in seen:
+            seen.add(el)
+            pred = list(G.predecessors(el))
+            sucs = list(G.successors(el))
+
+            data = G.nodes[el]
+            if 'symbol_id' in data:
+                chld = data.pop('children', [])
+            nd = Node(el, **data)
+            for x in pred:
+                if x in tmp:
+                    tmp[x].connect_to(nd, **G[x][el])
+            for x in sucs:
+                if x in tmp:
+                    nd.connect_to(tmp[x], **G[el][x])
+            tmp[nd.geom] = nd
+            q.extend(pred + sucs)
+
+    root_node = tmp[root]
+    return root_node
+
+
+def sys_to_nx(system):
+    import networkx as nx
+    G = nx.DiGraph()
+    for _, node in system._node_dict.items():
+        for n in node.successors():
+            G.add_edge(node.geom, n.geom)
+        # for n in node.predecessors():
+        #    G.add_edge(n.geom, node.geom)
+    return G
+
+
+def nodes_to_nx(root, fwd=True, bkwd=False):
+    import networkx as nx
+    G = nx.DiGraph()
+    for node in root.__iter__(fwd=fwd, bkwd=bkwd):
+        G.add_node(node.geom, **{**node.data, **node.tmps})
+
+    for node in root.__iter__(fwd=fwd, bkwd=bkwd):
+        for n in node.successors():
+            G.add_edge(node.geom, n.geom)
+        # for n in node.predecessors():
+        #    G.add_edge(n.geom, node.geom)
+
+    return G
+

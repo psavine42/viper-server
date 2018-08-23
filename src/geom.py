@@ -4,9 +4,9 @@ import uuid
 import math
 import numpy as np
 from shapely import ops
-from lib.sweep import SweepLine
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, MultiLineString
 from copy import deepcopy
+
 
 class FamilySymbol(Point):
     def __init__(self, *args, **kwargs):
@@ -17,12 +17,13 @@ class FamilySymbol(Point):
         else:
             if len(args) == 4:          # [x, y, z, r]
                 coord = args[0:3]
-                self._length = args[3] # Radius
+                self._length = args[3]  # Radius
             elif len(args) == 3:
                 coord = args
             else:
                 coord = args
         super(FamilySymbol, self).__init__(*coord)
+        self.children = kwargs.get('children', None)
         self._opts = kwargs
         self._type = kwargs.get('type', None)
         self._layer = kwargs.get('layer', None)
@@ -32,7 +33,7 @@ class FamilySymbol(Point):
     # ------------------------------------------------
     @property
     def to_dict(self):
-        return self._opts
+        return {**self._opts, **{'symbol_id': self._uuid}}
 
     @property
     def direction(self):
@@ -40,8 +41,10 @@ class FamilySymbol(Point):
 
     @property
     def points(self):
-        p1 = list(self.coords)
-        return p1
+        return list(self.coords)
+
+    def points_np(self):
+        return np.array(self.points)
 
     @property
     def length(self):
@@ -91,15 +94,6 @@ class MepCurve2d(LineString):
         self._layer = layer
         self._opts = kwargs
 
-    def _init_pnt(self, pnt):
-        if len(pnt) == 3:
-            _tmp = list(pnt)
-            h1 = list(_tmp).pop(-1)
-            pnt = tuple(_tmp)
-        else:
-            h1 = 0
-        return pnt, h1
-
     # ------------------------------------------------
     @property
     def geomType(self):
@@ -125,6 +119,15 @@ class MepCurve2d(LineString):
 
     def __gt__(self, other):
         self.points.__gt__(other.points)
+
+    def __le__(self, other):
+        self.points.__le__(other.points)
+
+    def __eq__(self, other):
+        return np.allclose(sorted(self.points), sorted(other.points))
+
+    def same_direction(self, other):
+        return np.allclose(np.abs(self.direction), np.abs(other.direction))
 
     # ------------------------------------------------
     def __reversed__(self):
@@ -163,7 +166,7 @@ class MepCurve2d(LineString):
 
     def to_dict(self, **kwargs):
         p1, p2 = self.points
-        dct = {'start': p1, 'end':p2, 'system':''}
+        dct = {'start': p1, 'end': p2, 'system': ''}
         dct.update(**kwargs)
         return dct
 
@@ -195,3 +198,169 @@ def add_coord(coord, x=0, y=0, z=0):
     crd[1] += y
     crd[2] += z
     return tuple(crd)
+
+
+def split_ls(line_string, point):
+    coords = line_string.coords
+    j = None
+    for i in range(len(coords) - 1):
+        if LineString(coords[i:i + 2]).intersects(point):
+           j = i
+           break
+    assert j is not None
+    # Make sure to always include the point in the first group
+    if Point(coords[j + 1:j + 2]).equals(point):
+        return coords[:j + 2], coords[j + 1:]
+    else:
+        return coords[:j + 1], coords[j:]
+
+
+def to3dp(point):
+    return Point(to_Nd(point))
+
+
+def to_Nd(point, n=3):
+    if isinstance(point, Point):
+        x = list(list(point.coords)[0])
+    elif isinstance(point, tuple):
+        x = list(point)
+    else:
+        x = point
+    this_dim = len(x)
+    if this_dim != n:
+        if this_dim + 1 == n:
+            x += [0]
+        elif this_dim -1 == n:
+            x = x[:2]
+    elif this_dim == 3:
+        if math.isnan(x[-1] ):
+            x[-1] = 0
+    return tuple(x)
+
+
+def to_mls(line_str):
+    if isinstance(line_str, LineString):
+        line_str = list(line_str.coords)
+    elif isinstance(line_str, MultiLineString):
+        return line_str
+    ds = []
+    # print('nn')
+    # print(line_str)
+    for i in range(1, len(line_str)):
+        if line_str[i-1] != line_str[i]:
+            ds.append((line_str[i - 1], line_str[i]))
+    return MultiLineString(ds)
+
+
+def add_line_at_end(mls, new_l, ix):
+    if isinstance(mls, LineString):
+        mls = to_mls(mls)
+    o = []
+    if ix == 0:
+        o += list(new_l.coords)
+        for x in mls.geoms:
+            o += list(x.coords)
+    else:
+
+        for x in mls.geoms:
+            o += list(x.coords)
+        o += list(new_l.coords)
+    print(o)
+    return MultiLineString(list(zip(o[::2], o[1::2])))
+
+
+def rebuild_ls(linestr, point_to_add):
+    proj1 = linestr.project(point_to_add, normalized=True)
+
+    pt_list = []
+    found = False
+    for pt in linestr.coords:
+
+        if found is False:
+            isf = linestr.project(Point(pt), normalized=True)
+            print(isf)
+            if isf > proj1 is True:
+                pt_list.append(to_Nd(point_to_add))
+                found = True
+        pt_list.append(pt)
+    print(pt_list)
+    return LineString(pt_list)
+
+
+def rebuild_mls(mls, point_to_add, **kwargs):
+    proj1 = mls.project(point_to_add, normalized=True)
+    pt_list = []
+    # print(proj1)
+    found = False
+    # nd = None
+    for geom in mls.geoms:
+        for pt in geom.coords:
+            nd = len(pt)
+            if found is False:
+                isf = mls.project(Point(pt), normalized=True)
+                # print(isf, proj1)
+                if isf > proj1:
+                    # print('added')
+                    pt_list.append(to_Nd(point_to_add, nd))
+                    found = True
+            pt_list.append(pt)
+    # print(pt_list)
+    return to_mls(pt_list)
+
+
+def direction(p1, p2):
+
+    return lib.geo.normalized(np.array(p2) - np.array(p1))
+
+
+def rebuild(linestr, point_to_add, **kwargs):
+    if isinstance(linestr, LineString):
+        linestr = to_mls(list(linestr.coords))
+
+    return rebuild_mls(linestr, point_to_add, **kwargs)
+
+
+def simplify_mls(mls):
+    keep = []
+    last = None
+    pdir = None
+    for geom in mls.geoms:
+        for pt in geom.coords:
+            if last is None:
+                last = pt
+                keep.append(pt)
+            elif pdir is None:
+                pdir = direction(keep[-1], pt)
+                keep.append(pt)
+            else:
+                this_dir = direction(keep[-1], pt)
+                if this_dir == pdir:
+                    pass
+                elif this_dir == -1 * pdir:
+                    pass
+    return
+
+
+
+def dedup(linestr):
+    seen = set()
+    crds = list(linestr.coords)
+    crvs = []
+    direct = None
+    for i in range(len(crds)):
+        p1= crds[i]
+        # mcc = MepCurve2d(p1, p2)
+        # if mcc.direction * -1 == direct:
+        if crvs:
+            xs = LineString([crvs[-1], p1])
+            prev = LineString(crvs)
+            inter = xs.intersection(prev)
+            if isinstance(inter, LineString):
+                continue
+        crvs.append(p1)
+
+def slow_rebuild(ls1, ls2):
+    un = ls1.union(ls2)
+
+
+

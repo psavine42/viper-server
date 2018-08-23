@@ -3,28 +3,110 @@ from collections import defaultdict as ddict
 from collections import Counter
 from .property import Property
 from . import opers
+from copy import deepcopy
+
 
 class KB(object):
-    def __init__(self):
-        self._facts = {}
+    def __init__(self, root):
+        self._root = root
+        self._dict = {}
+        self._init_rules = None
+        self._build_agenda()
 
-    def add_rule(self, prop):
-        self._facts[prop.id] = prop
+    def __str__(self):
+        st = 'KB with {} rules, initial rules {}'.format(len(self._dict), len(self.agenda))
+        return st
 
+    def show(self):
+        for k, v in self._dict.items():
+            print(v, v.post_pos, v.post_neg)
+
+    def get_vars(self):
+        q = [self._root]
+        vars = set()
+        seen = ()
+        while q:
+            el = q.pop(0)
+            if el.id not in seen:
+                if el.var is not None:
+                    vars.add(el.var)
+                for x in el.pre_conditions:
+                    q.append(x)
+        return vars
+
+    def compute_additional_mutexes(self):
+        pass
+
+    def plot(self):
+        vars_ = self.get_vars()
+
+    def _build_agenda(self):
+        q = [self._root]
+        vars = dict()
+        seen = ()
+        while q:
+            el = q.pop(0)
+            if el.id not in seen:
+                self._dict[el.id] = el
+                vars[el.id] = len(el.pre_conditions)
+                for x in el.pre_conditions:
+                    q.append(x)
+        return [x[0] for x in sorted(vars.items(), key=lambda x: x[1]) if x[1] == 0]
+
+    def __getitem__(self, item):
+        return self._dict[item]
+
+    @property
+    def agenda(self):
+        if self._init_rules is None:
+            self._init_rules = self._build_agenda()
+        return self._init_rules
+
+    @property
     def root(self):
-        return
+        return self._root
 
+
+class Recorder(object):
+    def __init__(self, debug=False, mx=1e6, nlog=10):
+        self._debug = debug
+        self._history = []
+        self._max = mx
+        self._log_every = nlog
+        self._cnt = 0
+
+    @property
+    def step(self):
+        return self._cnt
+
+    def inc(self):
+        self._cnt += 1
+
+    def report(self, *args):
+        if (self._debug is True) and (self._cnt % self._log_every == 0):
+            print('ITER', self._cnt, *args)
+
+    def stop(self):
+        if self._max < self._cnt:
+            return True
+        return False
+
+    def on_op(self, op, node, res):
+        self._history.append((op.id, node.id, res))
 
 
 class RuleEngine(object):
-    def __init__(self, root=None, term_rule=None):
+    def __init__(self, root=None, term_rule=None, **kwargs):
         self.root = root
         self._term_rule = term_rule
         self._first_op = term_rule
         self._rules = dict() # todo ordered dict
         self._freq = None
+
         self._post_conds = ddict(set)
         self._pre_conds = ddict(set)
+
+        self.logger = Recorder(**kwargs)
         if term_rule is not None:
             self._preprocess(term_rule)
 
@@ -35,7 +117,7 @@ class RuleEngine(object):
             el = q.pop(0)
 
             self._rules[el.id] = el
-            pre = el.pre_conditions()
+            pre = el.pre_conditions
             for x in pre:
                 self._post_conds[x.id].add(el.id)
                 self._pre_conds[el.id].add(x.id)
@@ -59,21 +141,17 @@ class RuleEngine(object):
         meta = {}
         for n in labels:
             meta[n] = {'size': random.randint(0, 250), 'color': random.random()}
-
-        print(meta)
         for n in root.__iter__():
-            print(str(n), n.nsucs, n.npred, n.tmps, )
             for mk in meta.keys():
                 if n.tmps.get(mk, None) is True:
                     n.write('type', mk)
 
         def label_fn(n, d):
             sym = d.get('type', '')
-            return '{} {}'.format(sym, n)
+            return '{}'.format(sym)
 
         nxg = nodes_to_nx(root)
         src.visualize._plot(nxg, label_fn, meta=meta)
-
 
     def yield_queue(self, root):
         """
@@ -116,55 +194,81 @@ class RuleEngine(object):
         print('Num iters :{}'.format(cnt))
         return root
 
+    def report(self, *args):
+        self.logger.report(*args)
 
-    def propogate(self, root_node):
+    def log(self, *args):
+        self.logger.on_op(*args)
+        self.logger.report(*args)
+        self.logger.inc()
+
+    def alg2(self, root_node, kb):
         """
         Write
         :return:
         """
-        # node_q = [(root_node, None, []) ]
-        node_q = [root_node]
+        agenda = kb.agenda
+        nodes_q = [root_node]
+        opers_q = [deepcopy(agenda)]
 
-        while node_q:
+        while nodes_q:
 
-            node, op_q, mutex = node_q.pop(0)
-            op_q = list(self._rules.values())
-            mutex = []
+            node = nodes_q.pop(0)
+            op_q = opers_q.pop(0)
+
+            self.report(node, len(op_q), len(nodes_q))
+            if node.complete is True:
+                continue
 
             while node.complete is False and op_q:
 
-                this_op = op_q.pop(0)
-                res = this_op(node)
+                this_op = kb[op_q.pop(0)]
+                res = this_op.apply(node)
+                self.log(this_op, node, res)
 
                 if res is True:
-                    op_q.remove(this_op.mutex)
-                    op_q.remove(this_op.pre_conditions())
 
-                    # op_q.extend(this_op.post_pos())
-                    # mutex.extend(this_op.mutex)
+                    remove = this_op.mutexes + this_op.pre_conditions + this_op.post_neg
+                    for op in remove:
+                        if op.id in op_q:
+                            op_q.remove(op.id)
+
+                    for op in this_op.post_pos:
+                        if op.id not in op_q:
+                            op_q.insert(0, op.id)
 
                 elif res is False:
-                    # rule removed
-                    op_q.remove(this_op.post_pos())
-                    op_q.remove(this_op.pre_conditions())
 
-                    # op_q.extend(this_op.post_pos())
-                    # if false, then the posts of True are removed
+                    remove = this_op.post_pos + this_op.pre_conditions
+                    for op in remove:
+                        if op.id in op_q:
+                            op_q.remove(op.id)
 
                 elif res is None:
-                    # rule could not be applied
-                    # a precondition could not be met
-                    # op_q = []
+                    op_q.append(this_op.id)
                     break
                 else:
                     raise Exception
 
-            node.propogate()
-            node_q.extend(node.successors())
+            node.propogate()    # placeholder
 
-            if node.complete is False:
-                node_q.append(node)
+            for suc in node.successors():
+                if not suc.complete  and suc not in nodes_q:
+                    nodes_q.append(suc)
+                    opers_q.append(deepcopy(agenda))
 
+            if node.complete is False and op_q:
+                nodes_q.append(node)
+                opers_q.append(op_q)
+
+            self.report(node, len(op_q), len(nodes_q))
+            self.report(op_q)
+            self.report('-----------')
+
+            if self.logger.stop() is True:
+                break
+        print(*nodes_q)
+        print('solved in {} iterations'.format(self.logger.step))
         return root_node
 
 
@@ -182,42 +286,8 @@ def props_to_nx(root):
     return G
 
 
-def nx_to_nodes(G, root):
-    seen, q = set(), [root]
-    tmp = {}
-    while q:
-        el = q.pop(0)
-        if el not in seen:
-            seen.add(el)
-            pred = list(G.predecessors(el))
-            sucs = list(G.successors(el))
-
-            nd = Node(el, **G.nodes[el])
-            for x in pred:
-                if x in tmp:
-                    tmp[x].connect_to(nd, **G[x][el])
-            for x in sucs:
-                if x in tmp:
-                    nd.connect_to(tmp[x], **G[el][x])
-            tmp[nd.geom] = nd
-            q.extend(pred + sucs)
-
-    root_node = tmp[root]
-    return root_node
 
 
-def nodes_to_nx(root):
-    import networkx as nx
-    G = nx.DiGraph()
-    for node in iter(root):
-        G.add_node(node.geom, **{**node.data, **node.tmps})
 
-    for node in iter(root):
-        for n in node.successors():
-            G.add_edge(node.geom, n.geom)
-        for n in node.predecessors():
-            G.add_edge(n.geom, node.geom)
-
-    return G
 
 
