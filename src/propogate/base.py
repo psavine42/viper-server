@@ -1,6 +1,7 @@
 from uuid import uuid4
 from src.rules.graph import Node, Edge
 
+
 class BasePropogator(object):
     def __init__(self, name, nodes=True, edges=False, domain=None, reverse=False, **kwargs):
         self._id = uuid4()
@@ -45,11 +46,34 @@ class BasePropogator(object):
             node, new_data = self.on_default(node, data, **kwargs)
 
         for next_node in self.next_fn(node):
-            self.__call__(next_node, new_data, first=False, **kwargs)
+            self.__call__(next_node, data=new_data, first=False, **kwargs)
 
     def __str__(self):
         st = '<{}>'.format(self.__class__.__name__)
         return st
+
+
+class RecProporgator(BasePropogator):
+    def __init__(self, name=None,  **kwargs):
+        name = name if name else self.__class__.__name__
+        super(RecProporgator, self).__init__(name,  **kwargs)
+        self.seen = set()
+
+    def __call__(self, node, data=None, first=True, **kwargs):
+
+        if self.is_terminal(node, data, **kwargs) is True:
+            self.on_terminal(node, data, **kwargs)
+            return None
+        elif first is True:
+            node, new_data = self.on_first(node, data, **kwargs)
+        else:
+            node, new_data = self.on_default(node, data, **kwargs)
+
+        for next_node in self.next_fn(node):
+            if next_node.id not in self.seen:
+                self.seen.add(next_node.id)
+                self.__call__(next_node, data=new_data, first=False, **kwargs)
+
 
 
 class EdgePropogator(BasePropogator):

@@ -29,11 +29,18 @@ class DistanceFromSource(BasePropogator):
 class BuildOrder(BasePropogator):
     def __init__(self, name='order', **kwargs):
         super(BuildOrder, self).__init__(name, **kwargs)
-        self.count = 0
+        self.node_cnt = 0
+        self.edge_cnt = 0
+        self.edge_seen = set()
 
     def on_default(self, node, p, **kwargs):
-        node.write(self._var, self.count)
-        self.count += 1
+        node.write(self._var, self.node_cnt)
+        self.node_cnt += 1
+        for edge in node.successors(edges=True):
+            if edge.id not in self.edge_seen:
+                self.edge_seen.add(edge.id)
+                edge.write(self.var, self.edge_cnt)
+                self.edge_cnt += 1
         return node, p
 
 
@@ -97,28 +104,35 @@ class DirectionWriter(EdgePropogator):
 
             two lines are colinear, and one is orthagonal
         """
-        p1, p2 = edge.geom
-        crv = geom.MepCurve2d(p1, p2)
-        new_direction = crv.direction
-        edge.write('direction', new_direction)
-        if prev_direction is None:
-            res = False
-        else:
-            res = np.allclose(new_direction, np.abs(prev_direction))
+        new_dir = edge.direction
+        res = False if prev_direction is None else np.allclose(new_dir, prev_direction)
+
         if res is True:
             edge.write(self.var, False)
         else:
             edge.write(self.var, True)
-        return edge, new_direction
+        # if prev_direction is not None:
+        #    angle = np.angle(new_dir - prev_direction)
+        #    edge.write('angle', angle)
+        return edge, new_dir
 
 
 class FuncPropogator(BasePropogator):
-    def __init__(self, name, fn, **kwargs):
-        super(FuncPropogator, self).__init__(name=name, **kwargs)
+    def __init__(self, fn, **kwargs):
+        super(FuncPropogator, self).__init__(name=fn.__name__, **kwargs)
         self._fn = fn
 
     def on_default(self, node_or_edge, prev_data, **kwargs):
-        return self._fn(node_or_edge, prev_data, **kwargs)
+        res = self._fn(node_or_edge, prev_data, **kwargs)
+        if isinstance(res, tuple) and len(res) == 2:
+            node, new_data = res
+            return node, new_data
+        return node_or_edge, prev_data
+
+    def __call__(self, node, **kwargs):
+        super(FuncPropogator, self).__call__(node, **kwargs)
+        self.seen = set()
+        return node
 
 
 # ---------------------------------------------------------------
@@ -172,6 +186,11 @@ class Chain(object):
     def __call__(self, root):
         for prop in self._props:
             prop(root)
+
+
+
+
+
 
 
 

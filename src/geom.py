@@ -200,6 +200,17 @@ def add_coord(coord, x=0, y=0, z=0):
     return tuple(crd)
 
 
+def set_coord(coord, x=None, y=None, z=None):
+    crd = deepcopy(coord)
+    if isinstance(crd, tuple):
+        crd = list(crd)
+    crd[0] = x if x else crd[0]
+    crd[1] = y if y else crd[1]
+    crd[2] = z if z else crd[2]
+    return tuple(crd)
+
+
+
 def split_ls(line_string, point):
     coords = line_string.coords
     j = None
@@ -244,8 +255,6 @@ def to_mls(line_str):
     elif isinstance(line_str, MultiLineString):
         return line_str
     ds = []
-    # print('nn')
-    # print(line_str)
     for i in range(1, len(line_str)):
         if line_str[i-1] != line_str[i]:
             ds.append((line_str[i - 1], line_str[i]))
@@ -290,26 +299,25 @@ def rebuild_ls(linestr, point_to_add):
 def rebuild_mls(mls, point_to_add, **kwargs):
     proj1 = mls.project(point_to_add, normalized=True)
     pt_list = []
-    # print(proj1)
+
     found = False
-    # nd = None
+
     for geom in mls.geoms:
         for pt in geom.coords:
             nd = len(pt)
             if found is False:
                 isf = mls.project(Point(pt), normalized=True)
-                # print(isf, proj1)
+
                 if isf > proj1:
-                    # print('added')
+
                     pt_list.append(to_Nd(point_to_add, nd))
                     found = True
             pt_list.append(pt)
-    # print(pt_list)
+
     return to_mls(pt_list)
 
 
 def direction(p1, p2):
-
     return lib.geo.normalized(np.array(p2) - np.array(p1))
 
 

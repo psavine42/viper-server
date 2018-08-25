@@ -3,6 +3,8 @@ import pylab
 from matplotlib import pyplot
 import lib.figures as F
 from src.geomType import GeomType
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 _styles = {
     'tee': {'size': 100, 'color': 1},
@@ -40,6 +42,10 @@ def pos_label_fn(node, data):
     return '{} {} : {} - {}'.format(sym, lbl, str(node), ord)
 
 
+def all_props(node, data):
+    return str(data)
+
+
 def order_label(node, data):
     return data.get('order', 'x')
 
@@ -58,7 +64,41 @@ def simple_plot(G, meta=_styles, label=True):
     pylab.show()
 
 
-def _plot(G, lbl_fn, meta=_styles, label=True):
+def dump_data(res_data):
+    import time, json
+    st = str(round(time.time(), 0))
+    with open('./data/out/{}.json'.format(st), 'w') as F:
+        F.write(json.dumps(res_data))
+
+
+def print_iter(root):
+    for node in root.__iter__():
+        print(node)
+
+
+def plot3d(root, meta):
+    fig = plt.figure()
+    fig.set_size_inches(24, 12)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_zlim([-2, 2])
+    ax.axis('off')
+    for n in root.__iter__():
+        t = n.get('type', None)
+        if t:
+            size = meta[t]['size']
+            col = meta[t]['color']
+            x, y, z = n.geom
+            ax.plot([x], [y], [z], marker='o', color='r')
+
+        for x in n.successors(edges=True):
+            p1, p2 = x.geom
+
+            x, y, z = zip(p1, p2)
+            ax.plot(x, y, z, color='919191')
+    plt.show()
+
+
+def _plot(G, lbl_fn, edge_fn=None, meta=_styles, label=True):
     pos, colors, labels, sizes = {}, [], {}, []
     for (p, d) in G.nodes(data=True):
 
@@ -71,10 +111,11 @@ def _plot(G, lbl_fn, meta=_styles, label=True):
         sizes.append(meta.get(n_type, {}).get('size', 20))
         labels[p] = lbl_fn(p, d)
 
+    edge_fn = edge_fn if edge_fn else order_label
     edge_labels = {}
     for k, nbrdict in G.adjacency():
         for to, d in nbrdict.items():
-            edge_labels[(k, to)] = order_label((k, to), d)
+            edge_labels[(k, to)] = edge_fn((k, to), d)
 
     nx.draw(G, pos,
             node_size=sizes,
@@ -97,4 +138,59 @@ def ord_plot(G, **kwargs):
     _plot(G, pos_label_fn, **kwargs)
 
 
+class Plot(object):
+    """
+
+    """
+    def __init__(self, **kwargs):
+        self._mode = kwargs.get('mode', 3)
+        self._dim = kwargs.get('dim', 3)
+        self._edge_fn = kwargs.get('edge', None)
+        self._node_fn = kwargs.get('node', None)
+
+    def plot(self, root):
+        pass
+
+
+class Plotter(object):
+    def __init__(self):
+        import numpy as np
+        x = np.random.rand(15)
+        y = np.random.rand(15)
+        self.names = np.array(list("ABCDEFGHIJKLMNO"))
+
+        norm = 0
+        cmap = 0
+        self.fig, self.ax = plt.subplots()
+        self.sc = plt.scatter(x, y, c=c, s=100, cmap=cmap, norm=norm)
+
+        self.annot = self.ax.annotate("", xy=(0, 0), xytext=(20, 20),
+                                      textcoords="offset points",
+                            bbox=dict(boxstyle="round", fc="w"),
+                            arrowprops=dict(arrowstyle="->"))
+        self.annot.set_visible(False)
+        self.fig.canvas.mpl_connect("motion_notify_event", self.hover)
+
+    def update_annot(self, ind):
+
+        pos = self.sc.get_offsets()[ind["ind"][0]]
+        self.annot.xy = pos
+        text = "{}, {}".format(" ".join(list(map(str, ind["ind"]))),
+                               " ".join([self.names[n] for n in ind["ind"]]))
+        self.annot.set_text(text)
+        self.annot.get_bbox_patch().set_facecolor(cmap(norm(c[ind["ind"][0]])))
+        self.annot.get_bbox_patch().set_alpha(0.4)
+
+    def hover(self, event):
+        vis = self.annot.get_visible()
+        if event.inaxes == self.ax:
+            cont, ind = self.sc.contains(event)
+            if cont:
+                self.update_annot(ind)
+                self.annot.set_visible(True)
+                self.fig.canvas.draw_idle()
+            else:
+                if vis:
+                    self.annot.set_visible(False)
+                    self.fig.canvas.draw_idle()
 

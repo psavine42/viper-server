@@ -3,6 +3,9 @@ from uuid import uuid4
 from collections import defaultdict as ddict
 from copy import deepcopy
 import random
+from src.geom import MepCurve2d
+from shapely.geometry import Point
+import numpy as np
 
 
 # ---------------------------------------------------------------
@@ -102,9 +105,13 @@ class Edge(GraphData):
     def geom(self):
         return self._src.geom, self._tgt.geom
 
+    @property
+    def direction(self):
+        return MepCurve2d(*self.geom).direction
 
-    # def gdirection(self):
-
+    @property
+    def curve(self):
+        return MepCurve2d(*self.geom)
 
     @property
     def source(self):
@@ -113,6 +120,9 @@ class Edge(GraphData):
     @property
     def target(self):
         return self._tgt
+
+    def similar_direction(self, other):
+        return np.allclose(other.direction, self.direction)
 
     def split(self, new_geom, **kwargs):
         """
@@ -173,6 +183,10 @@ class Edge(GraphData):
         return self._src.__eq__(other._tgt) \
                and self._tgt.__eq__(other._src)
 
+    def __len__(self):
+        return self.curve.length
+
+
     def __del__(self):
         self._tgt.remove_edge(self)
         self._src.remove_edge(self)
@@ -204,6 +218,10 @@ class Node(GraphData):
     @property
     def geom(self):
         return self._geom
+
+    @property
+    def as_point(self):
+        return Point(self.geom)
 
     def predecessors(self, edges=False):
         if edges is True:
@@ -266,10 +284,6 @@ class Node(GraphData):
             edge._tgt = None
             edge._src = None
 
-            # del edge
-        # self.d
-
-
     @property
     def complete(self):
         return self.get('solved', False)
@@ -291,7 +305,7 @@ class Node(GraphData):
                 return node
         return None
 
-    def __iter__(self, fwd=True, bkwd=False, seen=None):
+    def __iter__(self, fwd=True, bkwd=False,  seen=None):
         """defaults to DFS on successors """
         if seen is None:
             seen = set()
@@ -300,7 +314,10 @@ class Node(GraphData):
         for n in self.neighbors(fwd=fwd, bkwd=bkwd):
             if n.id not in seen:
                 for x in n.__iter__(seen=seen, fwd=fwd, bkwd=bkwd):
+                    # if edges is False:
                     yield x
+                    # else:
+                    #    yield n.edge_to(x)
         del seen
 
     def __call__(self, fn, acc, **kwargs):
@@ -310,7 +327,7 @@ class Node(GraphData):
         return acc
 
     def __str__(self):
-        st = '<{}>:{} :'.format(self.__class__.__name__, self._geom, str(self.tmps))
+        st = '<{}>:{} : {}'.format(self.__class__.__name__, self._geom, str(self.tmps))
         return st
 
     def __len__(self, local=False, seen=None):
@@ -349,6 +366,42 @@ def delete_between(node, source, target):
     node.remove_edge(prd)
     source.remove_edge(prd)
     target.remove_edge(suc)
+
+
+def geom_merge(*nodes):
+    from shapely.geometry import MultiPoint
+    from src.geom import to_Nd
+    res = []
+    ids = set()
+    for n in nodes:
+        ids.add(n.id)
+        res.append(n.as_point)
+    mlp_center = MultiPoint(res).centroid
+    node = Node(to_Nd(mlp_center))
+    for n in nodes:
+
+        for ins in n.predecessors(edges=True):
+            if ins.other_end(n).id not in ids:
+                ins.other_end(n).connect_to(node)
+                n.remove_edge(ins)
+                ins.other_end(n).remove_edge(ins)
+                del ins
+        for ins in n.successors(edges=True):
+            if ins.other_end(n).id not in ids:
+                node.connect_to(ins.other_end(n))
+                n.remove_edge(ins)
+                ins.other_end(n).remove_edge(ins)
+                del ins
+    for n in nodes:
+        del n
+    return node
+
+
+class NGraph(object):
+    def __init__(self, root):
+        self._root = root
+
+    # def iter_edges(self):
 
 
 

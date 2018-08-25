@@ -4,6 +4,8 @@ from collections import Counter
 from .property import Property
 from . import opers
 from copy import deepcopy
+from viper import nodes_to_nx
+import random
 
 
 class KB(object):
@@ -135,9 +137,8 @@ class RuleEngine(object):
             for p in self._post_conds[rule.id]:
                 yield self._rules[p]
 
-    def plot(self, root, labels):
-        import random
-        import src.visualize
+
+    def annotate_type(self, root, labels):
         meta = {}
         for n in labels:
             meta[n] = {'size': random.randint(0, 250), 'color': random.random()}
@@ -145,13 +146,16 @@ class RuleEngine(object):
             for mk in meta.keys():
                 if n.tmps.get(mk, None) is True:
                     n.write('type', mk)
+        return meta
 
+    def plot(self, root, labels):
+        import src.visualize
+        meta = self.annotate_type(root, labels)
         def label_fn(n, d):
             sym = d.get('type', '')
             return '{}'.format(sym)
-
         nxg = nodes_to_nx(root)
-        src.visualize._plot(nxg, label_fn, meta=meta)
+        src.visualize._plot(nxg, label_fn,  meta=meta)
 
     def yield_queue(self, root):
         """
@@ -272,18 +276,6 @@ class RuleEngine(object):
         return root_node
 
 
-def props_to_nx(root):
-    import networkx as nx
-    G = nx.DiGraph()
-    q = [root]
-    while q:
-        n = q.pop(0)
-        str_nd = str(n)
-        G.add_node(str_nd)
-        for p in n.pre_conditions():
-            G.add_edge(str(p), str_nd)
-            q.append(p)
-    return G
 
 
 

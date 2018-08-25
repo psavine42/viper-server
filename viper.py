@@ -2,28 +2,23 @@
 import networkx as nx
 import numpy as np
 
-from src.geom import MepCurve2d, rebuild_ls, rebuild, split_ls, to_Nd, to_mls
 from collections import defaultdict as ddict
 
-import src.walking as walking
-from src.geomType import GeomType
-
 from src import visualize
+from src.utils import round_tup
+from src.rules.graph import Node
+from src.geomType import GeomType
+from src.geom import MepCurve2d, to_Nd
 
-from shapely.geometry import Point, LineString, MultiLineString
-from shapely.ops import linemerge, nearest_points, shared_paths
-
-from src.rules.graph import Node, Edge
+import src.walking as walking
 import src.propogate.geom_prop as gp
 import src.propogate.propagators as ppg
+
+from shapely.geometry import Point, LineString
+from shapely.ops import linemerge, nearest_points
+
 import pprint
-
-class GeomFilter(object):
-    def __init__(self):
-        pass
-
-    def __call__(self, mls):
-        pass
+from copy import deepcopy
 
 
 class System(object):
@@ -35,10 +30,11 @@ class System(object):
         self._edge_ord, self._node_ord = 0, 0
         self.G = nx.DiGraph() # dg with cycles allowed bro
         # self._lim = [1e10, 1e10, -1e10, -1e10]
-        self._symbols = {s.points[0]: s for s in symbols}
+
         self._endpoints = []
         if segments:
             self.build(segments, **kwargs)
+        self._symbols = {s.points[0]: s for s in symbols}
 
     # Util---------------------------------------------
     def gplot(self, **kwargs):
@@ -305,8 +301,11 @@ class SystemV2(System):
 
 
 class SystemV3(System):
-    def __init__(self, **kwargs):
+    _ROUND = 0
+
+    def __init__(self, symbols=[], **kwargs):
         self._node_dict = dict()
+        self._symbols = {round_tup(s.points[0], self._ROUND): s for s in symbols}
         super(SystemV3, self).__init__(**kwargs)
 
     def filter_keep(self, lines, pt):
@@ -319,23 +318,31 @@ class SystemV3(System):
         for crv in lines:
             if pt.distance(crv) < dist:
                 root, dist = crv, pt.distance(crv)
+
         self._keep_layers.append(root.layer)
         fls = []
         for l in lines:
+            if l.type == GeomType.SYMBOL:
+                print('sym', l)
             if l.layer == root.layer or l.type == GeomType.SYMBOL:
                 fls.append(l)
-        return fls
+        p1, p2 = [Point(x) for x in root.points]
+        root_pt = tuple(list(p1.coords if pt.distance(p1) < pt.distance(p2) else p2.coords)[0])
+        return fls, root_pt
 
-    def get_intersects(self, lines, pt=None, norm=0.1):
-        lines = self.filter_keep(lines, pt)
-        mls_ob = linemerge(lines)
+    def write_symbols(self, mls_ob, tol=5.0):
+        for pt, sym in self._symbols.items():
+            pt_on_mls, _ = nearest_points(mls_ob, sym)
+
+    def get_intersects(self, mep_curves, pt=None, syms=None, norm=0.1):
+        mls_ob = linemerge(mep_curves)
         root, _ = nearest_points(mls_ob, Point(pt))
         root = to_Nd(root, 3)
 
         merged = list(mls_ob)
         print('building', len(merged))
+
         dists = ddict(dict)
-        node_dict = dict()
         acomps = []
         for i in range(len(merged)):
             ndict = dict()
@@ -343,7 +350,14 @@ class SystemV3(System):
             for k in range(len(cords)):
                 pnt = cords[k]
                 if pnt not in ndict:
-                    ndict[pnt] = Node(pnt)
+                    if round_tup(pnt, self._ROUND) in self._symbols:
+                        ds = self._symbols[round_tup(pnt, self._ROUND)]
+                        if 'children' in ds._opts:
+                            ds._opts.pop('children')
+
+                        ndict[pnt] = Node(pnt, **ds.to_dict)
+                    else:
+                        ndict[pnt] = Node(pnt)
                 if k > 0:
                     ndict[cords[k - 1]].connect_to(ndict[pnt])
             acomps.append(ndict)
@@ -352,13 +366,26 @@ class SystemV3(System):
                 dists[i][j] = dist
                 dists[j][i] = dist
 
+        print('indexes created')
+        acomps = self._build_network(acomps, merged, dists)
+        print('network built')
+        for comp in acomps:
+            if comp is not None:
+                for k, v in comp.items():
+                    if v.geom == root:
+                        self._root = v
+                        break
+
+    @staticmethod
+    def _build_network(comps, merged, dists):
         q = [0]
-        while q and len(dists) != 1 and len(acomps) != 1:
+
+        while q and len(dists) != 1 and len(comps) != 1:
             i = q.pop()
             mk, mv = min(dists[i].items(), key=lambda x: x[1])
 
-            this_comp = acomps[i]
-            othr_comp = acomps[mk]
+            this_comp = comps[i]
+            othr_comp = comps[mk]
 
             # compute nearest point
             pi, po = [to_Nd(x) for x in nearest_points(merged[i], merged[mk])]
@@ -396,7 +423,7 @@ class SystemV3(System):
 
             merged[i] = merged[i].union(merged[mk]) # update geometry
             merged[mk] = None                       # remove previous
-            acomps[mk] = None                       # remove previous
+            comps[mk] = None                        # remove previous
 
             for k, v in dists[mk].items():
                 if k in dists[i]:
@@ -417,48 +444,12 @@ class SystemV3(System):
                 if mv == 0:
                     break
             q.append(nextk)
-
-        print('{} components, {} nodes'.format(len(acomps), sum([len(x) for x in acomps if x])))
-        for i in range(len(acomps)):
-            if acomps[i] is None:
-                continue
-            for k, v in acomps[i].items():
-                if v.id not in node_dict:
-                    if v.geom == root:
-                        self._root = v
-                    # node_dict[v.id] = v
-                else:
-                    print('ovelap', v)
-
-        print('{} components, {} nodes'.format(len(acomps), len(node_dict)))
-        assert self._root is not None
-        gp.EdgeRouter()(self._root)
-        return node_dict
-
-    def add_to_graph(self, line_dict, indexes):
-        # intersect_ids_to_pts, points_to_ids, id_to_id, pts_to_pts = indexes
-
-        seen = set()
-        for k, vs in indexes.items():
-
-            seen.add(k)
-            if k not in self._node_dict:
-                self._node_dict[k] = Node(k)
-
-            for v in vs:
-                if v not in self._node_dict:
-                    self._node_dict[v] = Node(v)
-                # if self._node_dict[v] not in self._node_dict[k].neighbors():
-                self._node_dict[k].connect_to(self._node_dict[v])
-
-        print(self._root)
-        print(len(self._node_dict))
-        p1 = self._root
-        self._root = self._node_dict [p1]
+        return comps
 
     def build(self, segments=[], root=None, ext=0.2):
-        line_dict = {l.id: l for l in segments}
-        indexes = self.get_intersects(segments, pt=root, norm=ext)
+        segments, root_pt = self.filter_keep(segments, root)
+        print(root_pt)
+        self.get_intersects(segments, pt=root_pt, norm=ext)
 
     def gplot(self, **kwargs):
         G = nodes_to_nx(self._root, **kwargs)
@@ -466,19 +457,27 @@ class SystemV3(System):
 
     def aplot(self, **kwargs):
         G = sys_to_nx(self)
+        for s in self._symbols.keys():
+            G.add_node(s, type='symbol')
         visualize.gplot(G, **kwargs)
 
     def bake(self, root=None):
         baker = ppg.Chain(
+
+            gp.EdgeRouter(),
+            # gp.PropMerge('symbol_id'),
             ppg.EdgeDirector(),
             ppg.GraphTrim(),
-            ppg.DirectionWriter(),
+
             ppg.DistanceFromSource(),
             ppg.BuildOrder(),
             ppg.DistanceFromEnd(),
+            ppg.DirectionWriter(),
+            gp.Cluster()
         )
-
+        print('init bake', self._root)
         baker(self._root)
+        print('base baked')
         return self
 
 
@@ -516,8 +515,7 @@ def sys_to_nx(system):
     for _, node in system._node_dict.items():
         for n in node.successors():
             G.add_edge(node.geom, n.geom)
-        # for n in node.predecessors():
-        #    G.add_edge(n.geom, node.geom)
+
     return G
 
 
@@ -529,9 +527,8 @@ def nodes_to_nx(root, fwd=True, bkwd=False):
 
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         for n in node.successors():
-            G.add_edge(node.geom, n.geom)
-        # for n in node.predecessors():
-        #    G.add_edge(n.geom, node.geom)
+            e = node.edge_to(n)
+            G.add_edge(node.geom, n.geom, **e.tmps)
 
     return G
 

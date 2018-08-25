@@ -21,6 +21,10 @@ class Walker(object):
 
 
 class Property(Condition):
+    """
+    Deprecated
+
+    """
     def __init__(self, name, cond):
         super(Property, self).__init__()
         self._name = name

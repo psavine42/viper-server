@@ -1,4 +1,15 @@
+"""
+these definitions should be shared between client and server
+
+"""
+
 from enum import Enum
+
+
+class FPSymbols(Enum):
+    UpHead = 0
+    DownHead = 1
+    HorzHead = 2
 
 
 class GeomType(Enum):
@@ -8,4 +19,12 @@ class GeomType(Enum):
     LINE = 3
     POLYLINE = 4
     SYMBOL = 5
+
+
+class SystemType(Enum):
+    FireProtection = 0
+    Plumbing = 1
+    HotWater = 2
+    ColdWater = 3
+
 

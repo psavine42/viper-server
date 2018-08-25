@@ -1,6 +1,8 @@
 from src import walking
 from src.geom import MepCurve2d, FamilySymbol, add_coord
-import enum
+from . import render_propogators as P
+from ..propogate import propagators
+
 
 
 _global = {
@@ -99,6 +101,47 @@ class RenderSystem(object):
         return self.render(system)
 
 
+class RenderNodeSystem(object):
+    def __init__(self, **kwargs):
+        """
 
+        -give final spec for system
+        -build should be in order.
+        -should accomodate revit transactions
+
+        :param G:
+        """
+        # self.G = DiG
+        self.index = {}
+        self._dict = kwargs
+        self._shrink = kwargs.get('shrink', -0.25)
+        self._base_z = self.get_arg('base_z')
+        self._branch_ofs = self.get_arg('branch_z') - self._base_z
+        self._v_head_ofs = self.get_arg('vert_head_z') - self._base_z
+        self._d_head_ofs = self.get_arg('drop_head_z') - self._base_z
+
+    def get_arg(self, key):
+        if key in self._dict:
+            return self._dict.get(key, None)
+        else:
+            return _global.get(key, 0)
+
+    def render(self, system_root):
+        render = propagators.Chain(
+            P.RedrawPropogator('elbow+rise', fn=P.riser_fn, geom=self._branch_ofs),
+            P.RedrawPropogator('vbranch', fn=P.vbranch, geom=self._branch_ofs),
+            P.RedrawPropogator('dHead', fn=P.drop_fn, geom=self._d_head_ofs),
+            propagators.BuildOrder(),
+            )
+        render(system_root)
+        return system_root
+
+    def __call__(self, system):
+        return self.render(system)
+
+    def __str__(self):
+        st = '<{}>'.format(self.__class__.__name__)
+        st += 'head {} , branch {} '.format(self._d_head_ofs, self._branch_ofs)
+        return st
 
 

@@ -9,11 +9,13 @@ from src.geomType import GeomType
 from src.rules.opers import *
 from pprint import pprint
 from spec.seg_data import *
+
+import src
 from src.factory import SystemFactory
+from src import process
 from src.rules import heursitics
 from src.propogate import propagators as P
 from shapely.geometry import LineString, Point, MultiLineString
-from shapely.ops import linemerge
 from src.geom import rebuild_ls, rebuild_mls, to_mls
 from src import visualize
 from src.propogate import geom_prop as gp
@@ -27,13 +29,50 @@ def read_props(node, k):
 _root = (2, 1, 0)
 
 
-def load_segs():
+def node_line(line, prev=None):
+    for i in range(len(line)):
+        n = Node(line[i])
+        if prev is None:
+            prev = n
+        else:
+            n.connect_to(prev)
+            prev = n
+    return prev
+
+
+def node_tree(pts, prev=None):
+    for i in range(len(pts)):
+        pt = pts[i]
+        if isinstance(pt[0], int):
+            n = Node(pt)
+
+            if prev is None:
+                prev = n
+            else:
+                n.connect_to(prev)
+                prev = n
+        elif isinstance(pt[0], tuple):
+            pt, rest = pts[i]
+            n = Node(pt)
+            if prev is None:
+                prev = n
+            else:
+                n.connect_to(prev)
+                node_tree(rest, n)
+                prev = n
+    return prev
+
+
+def load_segs(fl='data1'):
     import json
-    with open('./data/data1.json', 'r') as f:
+    with open('./data/{}.json'.format(fl), 'r') as f:
         xs = json.load(f)
-        segs = json.loads(xs['data'])[0]['children']
+        # print(xs)
+        if len(xs) == 1:
+            segs = json.loads(xs['data'])
+            xs = segs[0]['children']
         f.close()
-    return segs
+    return xs
 
 
 class TestProp(unittest.TestCase):
@@ -128,6 +167,13 @@ class TestProp(unittest.TestCase):
         assert edge.target == n1
         assert edge.source == n2
 
+    def test_merge_self(self):
+        n1 = [(1, 1), (1, 4.8), (1.2, 5), (1, 5.2), (1, 10)]
+        prev = node_line(n1)
+        gp.Cluster()(prev)
+        for n in prev.__iter__(fwd=True, bkwd=True):
+            print(n, *n.neighbors())
+
     def test_geom_sims(self):
         l2 = LineString([(1, 2), (1, 4), (4, 6), (4, 8)])
         l1 = LineString([(1, 3), (1, 4), (4, 6), (1, 4)])
@@ -137,14 +183,8 @@ class TestProp(unittest.TestCase):
 
     def test_adder(self):
         n1 = [(1, 2), (1, 4), (4, 6), (4, 8)]
-        prev = None
-        for i in range(len(n1)):
-            n = Node(n1[i])
-            if prev is None:
-                prev = n
-            else:
-                n.connect_to(prev)
-                prev = n
+        prev = node_line(n1)
+
         ndd = Node((1, 3))
         pa = gp.PointAdder(ndd)
         pa(prev)
@@ -265,10 +305,6 @@ class TestLogic(unittest.TestCase):
         system = system.bake()
         root = viper.nx_to_nodes(system)
 
-        # pprint(rl._freq)
-        # nxg = engine.props_to_nx(rules.root)
-        # visualize.simple_plot(nxg)
-
         root = Eng.yield_queue(root)
         nxg = Eng.plot(root, rules.final_labels)
 
@@ -301,19 +337,60 @@ class TestLogic(unittest.TestCase):
                                                     root=(-246, 45, 0))
         system = system.bake()
         root = viper.nx_to_nodes(system)
-
+        print(root)
         rules = heursitics.EngineHeurFP()
-        Eng = RuleEngine(term_rule=rules.root, mx=2500, debug=True, nlog=20)
+        Eng = RuleEngine(term_rule=rules.root, mx=2500, debug=False, nlog=20)
         Kb = KB(rules.root)
         root = Eng.alg2(root, Kb)
         nxg = Eng.plot(root, rules.final_labels)
-        #for n in Eng.logger._history:
-        #    print(n)
+
+    def test_eng5(self):
+        data = load_segs(fl='1535158393.0-revit-signal')
+        system = SystemFactory.from_serialized_geom(
+            data, sys=viper.SystemV3, root=(-246, 45, 0))
+        system = system.bake()
+        root = system.root
+        print(root)
+        rules = heursitics.EngineHeurFP()
+        Eng = RuleEngine(term_rule=rules.root, mx=2500, debug=False, nlog=20)
+        Kb = KB(rules.root)
+        root = Eng.alg2(root, Kb)
+
+        print('nodes ', len(root))
+        from src.render.render import RenderNodeSystem
+        renderer = RenderNodeSystem()
+        root = renderer.render(root)
+        visualize.print_iter(root)
+
+        print('nodes ', len(root))
+        meta = Eng.annotate_type(root, rules.final_labels)
+        print(renderer)
+        # nxg = Eng.plot(root, rules.final_labels)
+        visualize.plot3d(root, meta)
+
+    def test_eng_full(self):
+        """
+        Test the engine as executed by server
+
+        """
+        import time
+        start = time.time()
+        data = load_segs(fl='1535158393.0-revit-signal')
+        points = [[-246.0000000012448, 45.31190012691635, 0.0]]
+        proc = process.SystemProcessorV3()
+        ds = proc.process(data, points, system_type='FP')
+        [print(k, len(v)) for k, v in ds.items()]
+        visualize.dump_data(ds)
+        for g in ds['geom']:
+            x1, y1, z1, x2, y2, z2 = g
+            res = [x1 == x2, y1 == y2, z1 == z2]
+            assert not all(res)
+        end = time.time()
+        print('time {} secs'.format(end - start))
 
     def test_loadsyms(self):
         segs = load_segs()
         ds = [x for x in segs if x['children'] != []]
-
         system = SystemFactory.from_serialized_geom(ds, root=(-246, 45, 0))
 
 

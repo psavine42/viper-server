@@ -19,11 +19,11 @@ class MainHandler(tornado.web.RequestHandler):
         dx = json_decode(self.request.body)
 
         points = json_decode(dx.get('points'))
-        data = json_decode(dx.get('data'))
+        data = json_decode(dx.get('data'))[0]['children']
 
         print('recieved')
 
-        proc = src.process.SystemProcessor()
+        proc = src.process.SystemProcessorV3()
         ds = proc.process(data, points, system_type='FP')
         self.write(json.dumps(ds))
 
