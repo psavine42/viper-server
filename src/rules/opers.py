@@ -132,8 +132,6 @@ class Condition(object):
         elif res is False:
             pass
 
-
-
     def on_eval(self, node, res):
         if self._var is not None:
             node.write(self._var, res)

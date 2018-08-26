@@ -1,5 +1,5 @@
 from uuid import uuid4
-from src.rules.graph import Node, Edge
+from src.structs.node import Node
 
 
 class BasePropogator(object):
@@ -73,7 +73,6 @@ class RecProporgator(BasePropogator):
             if next_node.id not in self.seen:
                 self.seen.add(next_node.id)
                 self.__call__(next_node, data=new_data, first=False, **kwargs)
-
 
 
 class EdgePropogator(BasePropogator):

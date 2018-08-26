@@ -1,170 +1,38 @@
 
 import math, time, json
-from src.factory import SystemFactory
-from src.rules.engine import RuleEngine, KB
-from src.render.render import RenderSystem, RenderNodeSystem
+from src import RenderNodeSystem, SystemFactory, RuleEngine, KB
 from src.rules import heursitics
 from src.geom import MepCurve2d
-from src import walking
-import viper
+
+from src import viper
 
 _sys_dict = {
     'FP': heursitics.EngineHeurFP
 }
 
 
-class SystemProcessor(object):
-    def __init__(self):
-        self._shrink = -0.01
-        self._z = 10.0
-
-    def get_system(self, ky):
-        return _sys_dict.get(ky)()
-
-    def process(self, data, points, system_type='FP'):
-        # tmp_arg = {'shrink': 0.5, 'base_z': 0}
-        # build graph
-        system = SystemFactory.from_serialized_geom(
-            data, sys=viper.SystemV2, root=points[0])
-
-        # bake attributes
-        system.bake()
-
-        # compute info about graph
-        heuristic = self.get_system(system_type)
-        system = heuristic(system)
-
-        # based on labels, finallize graph (adding new info)
-        system = RenderSystem()(system)
-
-        # bake the build order
-        system.bake_attributes(system.root, full=False)
-
-        # create build instructions
-        geom, inds = self.finalize(system.G, system.root)
-        out_data = {'geom': geom, 'indicies': inds}
-        return out_data
-
-    def _prepare(self, start, end):
-        crv = MepCurve2d(start, end)
-        p1, p2 = crv.extend(self._shrink, self._shrink).points
-        if math.isnan(p1[0]):
-            print(start, end, p1, p2)
-        vec = list(p1) + list(p2)
-        vec[2] += self._z
-        vec[5] += self._z
-        return vec
-
-    def finalize(self, G, root):
-        """
-            Create List of
-
-        :param G:
-        :return:
-            geom = [
-                [10, 5, 0,   10, 0, 0] # [0, [0 , 1]]
-                [10, 0, 0,   5, 0, 0]  # [1, [0 , 1]]
-                [5,  0, 0,   5, 5, 0]  # [2, [0 , 1]]
-            ]
-            inds = [
-                [[0, 1] , [1, 0] ]
-                [[1, 1] , [2, 0] ]
-            ]
-        """
-        geom, inds = [], []
-
-        def add_to_res(p1, p2, preds, sucs, seen):
-            line_ix = G[p1][p2].get('order')
-            geom.append(self._prepare(p1, p2))
-            if sucs:
-                sub_inds = [line_ix, 1]
-                for p in sucs:
-                    sub_inds.extend([G[p2][p].get('order'), 0])
-                inds.append(sub_inds)
-
-        walking.walk_edges(G, root, add_to_res)
-        return geom, inds
+class Symbolic(object):
+    pass
 
 
-class SystemProcessorV2(object):
-    def __init__(self):
-        self._shrink = -0.01
-        self._z = 10.0
+class SystemRequest(object):
+    def __init__(self, **kwargs):
+        self._base_z = kwargs.get('base_z', 0)
+        self._dHead = kwargs.get('dHead_z', 0)
+        self._vHead = kwargs.get('vHead_z', 0)
+        self._slope = kwargs.get('slope', 0)
 
-    def get_system(self, ky):
-        return _sys_dict.get(ky)()
-
-    def process(self, data, points, system_type='FP'):
-        # build graph
-        system = SystemFactory.from_serialized_geom(
-            data, sys=viper.SystemV2, root=points[0])
-
-        # bake attributes
-        system.bake()
-
-        # compute info about graph
-        heuristic = self.get_system(system_type)
-        system = heuristic(system)
-
-        # based on labels, finallize graph (adding new info)
-        system = RenderSystem()(system)
-
-        # bake the build order
-        system.bake_attributes(system.root, full=False)
-
-        # create build instructions
-        geom, inds = self.finalize(system.G, system.root)
-        out_data = {'geom': geom, 'indicies': inds}
-        return out_data
-
-    def _prepare(self, start, end):
-        crv = MepCurve2d(start, end)
-        p1, p2 = crv.extend(self._shrink, self._shrink).points
-        if math.isnan(p1[0]):
-            print(start, end, p1, p2)
-        vec = list(p1) + list(p2)
-        vec[2] += self._z
-        vec[5] += self._z
-        return vec
-
-    def finalize(self, G, root):
-        """
-            Create List of
-
-        :param G:
-        :return:
-            geom = [
-                [10, 5, 0,   10, 0, 0] # [0, [0 , 1]]
-                [10, 0, 0,   5, 0, 0]  # [1, [0 , 1]]
-                [5,  0, 0,   5, 5, 0]  # [2, [0 , 1]]
-            ]
-            inds = [
-                [[0, 1] , [1, 0] ]
-                [[1, 1] , [2, 0] ]
-            ]
-        """
-        geom, inds = [], []
-
-        def add_to_res(p1, p2, preds, sucs, seen):
-            line_ix = G[p1][p2].get('order')
-            geom.append(self._prepare(p1, p2))
-            if sucs:
-                sub_inds = [line_ix, 1]
-                for p in sucs:
-                    sub_inds.extend([G[p2][p].get('order'), 0])
-                inds.append(sub_inds)
-
-        walking.walk_edges(G, root, add_to_res)
-        return geom, inds
+    def __repr__(self):
+        st = ''
 
 
 class SystemProcessorV3(object):
     def __init__(self):
-        self._shrink = -0.01
+        self._shrink = -0.05
         self._z = 10.0
 
     def get_system(self, ky):
-        return _sys_dict.get(ky)()
+        return _sys_dict.get(ky)
 
     def _log_inputs(self, *args):
         st = str(round(time.time(), 0))
@@ -181,38 +49,48 @@ class SystemProcessorV3(object):
         :param kwargs: arguments to render the system
         :return:
         """
-        # build graph
         self._log_inputs(data, points)
-        print(points)
-        system = SystemFactory.from_serialized_geom(
-            data, sys=viper.SystemV3, root=tuple(points[0]))
 
-        # bake attributes
+        # build graph,  bake attributes
+        system = SystemFactory.from_serialized_geom(data, sys=viper.SystemV3, root=tuple(points[0]))
         system.bake()
-        root = system.root
 
-        # compute info about graph
-        heuristic = self.get_system(system_type)
-        Eng = RuleEngine(term_rule=heuristic.root,
-                         mx=1e6, debug=False, nlog=20)
-        Kb = KB(heuristic.root)
-        root = Eng.alg2(root, Kb)
+        syst_meta = SystemRequest(type=system_type, **kwargs)
+
+        heuristic = self.get_system(system_type)()
+        rl_engine = RuleEngine(term_rule=heuristic.root, mx=1e6, debug=False)
+        fact_base = KB(heuristic.root)
+        root_node = rl_engine.alg2(system.root, fact_base)
 
         # based on labels, finallize graph (adding new info)
-        root = RenderNodeSystem()(root)
+        sysrender = RenderNodeSystem()
+        root_node = sysrender.render(root_node)
+        meta_data = rl_engine.annotate_type(root_node, heuristic.final_labels)
 
         # create build instructions
-        geom, inds, syms = self.finalize(root)
+        geom, inds, syms = self.finalize(root_node)
         return {'geom': geom, 'indicies': inds, 'symbols': syms}
 
-    def _prepare(self, start, end):
+    def _prepare(self, start, end, last=False):
+        """
+        this is a revit hack. if the points of two curves are the same, the fitting
+        becomes all messed up.
+
+        if a node is the last one do not shrink that end as there are no more fittings
+        :param start:
+        :param end:
+        :param last:
+        :return:
+        """
         crv = MepCurve2d(start, end)
-        p1, p2 = crv.extend(self._shrink, self._shrink).points
+        if last is False:
+            p1, p2 = crv.extend(self._shrink, self._shrink).points
+        else:
+            p1, p2 = crv.extend(self._shrink, 0).points
+
         if math.isnan(p1[0]):
             print(start, end, p1, p2)
         vec = list(p1) + list(p2)
-        vec[2] += self._z
-        vec[5] += self._z
         return vec
 
     def finalize(self, root):
@@ -242,18 +120,46 @@ class SystemProcessorV3(object):
         for node1 in root.__iter__():
             for node2 in node1.successors():
 
-                suc = node1.edge_to(node2)
-                line_ix = suc.get('order')
-                geom.append(self._prepare(node1.geom, node2.geom))
-                if len(node2.successors()) > 0:
-                    sub_inds = [line_ix, 1]
-                    for p in node2.successors(edges=True):
-                          sub_inds.extend([p.get('order'), 0])
-                    inds.append(sub_inds)
+                suc_edge = node1.edge_to(node2)
+                line_ix = suc_edge.get('order')
 
-                elif node2.get('type', None) is not None:
+                next_sucs = node2.successors(edges=True)
+                is_last = len(next_sucs) == 0
+
+                # [x1, y1, z1, x2, y2, z2]
+                geom.append(self._prepare(node1.geom, node2.geom, last=is_last))
+                if not is_last:
+
+                    # [ mepcurve_index, end_index ]
+                    sub_inds = [line_ix, 1]
+                    new_inds = []
+                    has_similar = False
+                    for p in next_sucs:
+                        """
+                        this is a hack for revit. 
+                        if there are more than two connectors, then they have to be connected in order:
+                            [conn1, conn2, branch], 
+                        
+                        where conn1 and conn2 are on pipes with same direction, 
+                        and branch has a different direction
+                        
+                        """
+                        if p.similar_direction(suc_edge) is True:
+                            has_similar = True
+                            new_inds.insert(0, 0)
+                            new_inds.insert(0, p.get('order'))
+                        else:
+                            new_inds += [p.get('order'), 0]
+
+                    if has_similar is True:
+                        inds.append(sub_inds + new_inds)
+                    else:
+                        inds.append(new_inds + sub_inds)
+                elif node2.get('$create', None) is not None:
+
                     # [ symbol_type, mepcurve_index, end_index]
-                    syms.append([1, line_ix, 1])
+                    symbol_type = node2.get('$create', None)
+                    syms.append([symbol_type, line_ix, 1])
 
         return geom, inds, syms
 

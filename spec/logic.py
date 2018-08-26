@@ -1,24 +1,26 @@
-import unittest
-from src.rules import engine
-from src.rules.engine import RuleEngine, KB
-from src.rules.property import Property
-from src.rules.graph import Node
-import viper
+from unittest import TestCase
+import numpy as np
 from operator import eq
-from src.geomType import GeomType
-from src.rules.opers import *
 from pprint import pprint
+from shapely.geometry import LineString, Point
+
 from spec.seg_data import *
 
-import src
-from src.factory import SystemFactory
-from src import process
-from src.rules import heursitics
-from src.propogate import propagators as P
-from shapely.geometry import LineString, Point, MultiLineString
-from src.geom import rebuild_ls, rebuild_mls, to_mls
-from src import visualize
-from src.propogate import geom_prop as gp
+from src.rules.opers import *
+
+from src import visualize, SystemFactory, RenderNodeSystem
+
+from src.rules import RuleEngine, KB, heursitics
+from src.rules.property import Property
+
+from src import process, viper
+from src import propogate as gp
+
+from src.geom import rebuild_mls, to_mls
+import src.structs as gr
+import src.render.render_propogators as rpg
+
+
 
 
 def read_props(node, k):
@@ -75,7 +77,7 @@ def load_segs(fl='data1'):
     return xs
 
 
-class TestProp(unittest.TestCase):
+class TestProp(TestCase):
     def get_sys(self):
         system = SystemFactory.from_segs(SEGMENTS, root=_root, lr='a')
         system = system.bake()
@@ -83,7 +85,7 @@ class TestProp(unittest.TestCase):
 
     def test_dist_prop(self):
         root = self.get_sys()
-        propagator = P.DistanceFromSource()
+        propagator = gp.DistanceFromSource()
         propagator(root)
         for n in root.__iter__():
             pred = n.predecessors()
@@ -92,7 +94,7 @@ class TestProp(unittest.TestCase):
 
     def test_order_prop(self):
         root = self.get_sys()
-        propagator = P.BuildOrder()
+        propagator = gp.BuildOrder()
         propagator(root)
         order = set()
         cnt = 0
@@ -104,7 +106,7 @@ class TestProp(unittest.TestCase):
 
     def test_dist_to_end(self):
         root = self.get_sys()
-        propagator = P.DistanceFromEnd()
+        propagator = gp.DistanceFromEnd()
         propagator(root)
         for n in root.__iter__():
             if len(n.successors()) == 0:
@@ -112,7 +114,7 @@ class TestProp(unittest.TestCase):
 
     def test_loop_neg(self):
         root = self.get_sys()
-        propagator = P.LoopDetector()
+        propagator = gp.LoopDetector()
         propagator(root, data=[])
         for n in root.__iter__():
             assert n.get(propagator.var) is not True
@@ -124,7 +126,7 @@ class TestProp(unittest.TestCase):
         system = SystemFactory.from_segs(SEGMENTS, root=_root, lr='a')
         system = system.bake()
         root = viper.nx_to_nodes(system)
-        propagator = P.LoopDetector()
+        propagator = gp.LoopDetector()
         propagator(root, data=[])
         for n in root.__iter__():
             if n.geom in connect_loop:
@@ -132,7 +134,7 @@ class TestProp(unittest.TestCase):
 
     def test_edge_det(self):
         root = self.get_sys()
-        propagator = P.DirectionWriter()
+        propagator = gp.DirectionWriter()
         propagator(root)
         for n in root.__iter__():
             for e in n.successors(edges=True):
@@ -143,19 +145,19 @@ class TestProp(unittest.TestCase):
 
     def test_remover_sm(self):
         system = SystemFactory.from_segs(
-            SEGMENTS, sys=viper.SystemV3, root=_root, lr='a')
+            SEGMENTS, sys=viper.System, root=_root, lr='a')
         system.bake()
         system.gplot(fwd=True, bkwd=False)
 
     def test_remover_cl(self):
         system = SystemFactory.from_segs(
-            SEGMENTS_COL, sys=viper.SystemV3, root=_root, lr='a')
+            SEGMENTS_COL, sys=viper.System, root=_root, lr='a')
         system.aplot()
 
     def test_remover_lg(self):
         segs = load_segs()
         system = SystemFactory.from_serialized_geom(
-            segs, sys=viper.SystemV3, root=(-246, 45, 0))
+            segs, sys=viper.System, root=(-246, 45, 0))
         system.bake()
         system.gplot(fwd=True, bkwd=False)
 
@@ -193,6 +195,8 @@ class TestProp(unittest.TestCase):
         G = viper.nodes_to_nx(prev)
         visualize.gplot(G)
 
+
+
     def test_point(self):
         point = Point(1, 8)
         l3 = [(1, 3), (1, 10), (10, 6)]
@@ -228,7 +232,40 @@ class TestProp(unittest.TestCase):
 
 
 
-class TestLogic(unittest.TestCase):
+class TestRenderProp(TestCase):
+    def test_riser_fn(self):
+        root = self.test_translate()
+        rcp = viper.System.recipe()
+        rcp(root)
+
+        rules = heursitics.EngineHeurFP()
+        Eng = RuleEngine(term_rule=rules.root)
+        Kb = KB(rules.root)
+        root = Eng.alg2(root, Kb)
+
+        renderer = RenderNodeSystem()
+
+        root = renderer.render(root)
+
+        print('nodes ', len(root))
+        visualize.print_iter(root)
+        meta = Eng.annotate_type(root, rules.final_labels)
+        visualize.plot3d(root, meta)
+
+    def test_translate(self):
+        root = vertical_branch()
+
+        end1 = gr.node_at(root, (8, 6, 0))
+        root2 = vertical_branch()
+        rpg.Translate()(root2, data=np.array([8, 8, 0]))
+
+        end1.connect_to(root2)
+        return root
+        # visualize.plot3d(root2, {})
+
+
+
+class TestLogic(TestCase):
 
     def tearDown(self):
         self.term = None
@@ -278,7 +315,7 @@ class TestLogic(unittest.TestCase):
         n1.connect_to(n2)
         read_props(n2, 'IsDrop')
 
-        assert self.term(n0) is True
+        # assert self.term(n0) is True
 
         read_props(n2, 'IsDrop')
         print('\n')
@@ -292,7 +329,6 @@ class TestLogic(unittest.TestCase):
 
     def test_eng(self):
         print('\n')
-        ## pprint(self.term.pre_conditions())
         rl = RuleEngine(term_rule=self.term)
         pprint(rl._freq)
 
@@ -333,7 +369,7 @@ class TestLogic(unittest.TestCase):
 
     def test_eng4(self):
         system = SystemFactory.from_serialized_geom(load_segs(),
-                                                    sys=viper.SystemV2,
+                                                    sys=viper.System,
                                                     root=(-246, 45, 0))
         system = system.bake()
         root = viper.nx_to_nodes(system)
@@ -347,7 +383,7 @@ class TestLogic(unittest.TestCase):
     def test_eng5(self):
         data = load_segs(fl='1535158393.0-revit-signal')
         system = SystemFactory.from_serialized_geom(
-            data, sys=viper.SystemV3, root=(-246, 45, 0))
+            data, sys=viper.System, root=(-246, 45, 0))
         system = system.bake()
         root = system.root
         print(root)
@@ -357,15 +393,12 @@ class TestLogic(unittest.TestCase):
         root = Eng.alg2(root, Kb)
 
         print('nodes ', len(root))
-        from src.render.render import RenderNodeSystem
+
         renderer = RenderNodeSystem()
+        meta = Eng.annotate_type(root, rules.final_labels)
         root = renderer.render(root)
-        visualize.print_iter(root)
 
         print('nodes ', len(root))
-        meta = Eng.annotate_type(root, rules.final_labels)
-        print(renderer)
-        # nxg = Eng.plot(root, rules.final_labels)
         visualize.plot3d(root, meta)
 
     def test_eng_full(self):

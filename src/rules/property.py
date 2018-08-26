@@ -1,5 +1,3 @@
-from .graph import Node
-from uuid import uuid4
 from .opers import Condition
 
 class Walker(object):

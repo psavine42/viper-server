@@ -1,6 +1,6 @@
 from src import geom
 from .base import BasePropogator, EdgePropogator
-from src.rules.graph import Cell, Node
+
 import numpy as np
 
 
@@ -111,7 +111,8 @@ class DirectionWriter(EdgePropogator):
             edge.write(self.var, False)
         else:
             edge.write(self.var, True)
-        # if prev_direction is not None:
+
+        # if edge is not None:
         #    angle = np.angle(new_dir - prev_direction)
         #    edge.write('angle', angle)
         return edge, new_dir

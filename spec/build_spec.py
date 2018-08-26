@@ -1,14 +1,13 @@
 import unittest
 import importlib
-import viper
+from src import viper
 import sys
 import src.geom
 from shapely.geometry import Point, LineString
 from src.geom import MepCurve2d
 from lib.figures import draw_save
-from src.rules.heursitics import *
 import src.process
-import src.visualize
+import src.misc.visualize
 import src.render
 import src.factory
 import time

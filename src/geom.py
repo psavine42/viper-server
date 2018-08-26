@@ -153,7 +153,6 @@ class MepCurve2d(LineString):
     def extend_norm(self, start=0., end=0.):
         s = self.length * start
         e = self.length * end
-        # e = max([24, self.length * end])
         return self.extend(s, e)
 
     def buffer_norm(self, norm=1.):
@@ -208,7 +207,6 @@ def set_coord(coord, x=None, y=None, z=None):
     crd[1] = y if y else crd[1]
     crd[2] = z if z else crd[2]
     return tuple(crd)
-
 
 
 def split_ls(line_string, point):
@@ -278,24 +276,6 @@ def add_line_at_end(mls, new_l, ix):
     return MultiLineString(list(zip(o[::2], o[1::2])))
 
 
-def rebuild_ls(linestr, point_to_add):
-    proj1 = linestr.project(point_to_add, normalized=True)
-
-    pt_list = []
-    found = False
-    for pt in linestr.coords:
-
-        if found is False:
-            isf = linestr.project(Point(pt), normalized=True)
-            print(isf)
-            if isf > proj1 is True:
-                pt_list.append(to_Nd(point_to_add))
-                found = True
-        pt_list.append(pt)
-    print(pt_list)
-    return LineString(pt_list)
-
-
 def rebuild_mls(mls, point_to_add, **kwargs):
     proj1 = mls.project(point_to_add, normalized=True)
     pt_list = []
@@ -307,9 +287,7 @@ def rebuild_mls(mls, point_to_add, **kwargs):
             nd = len(pt)
             if found is False:
                 isf = mls.project(Point(pt), normalized=True)
-
                 if isf > proj1:
-
                     pt_list.append(to_Nd(point_to_add, nd))
                     found = True
             pt_list.append(pt)
@@ -324,51 +302,9 @@ def direction(p1, p2):
 def rebuild(linestr, point_to_add, **kwargs):
     if isinstance(linestr, LineString):
         linestr = to_mls(list(linestr.coords))
-
     return rebuild_mls(linestr, point_to_add, **kwargs)
 
 
-def simplify_mls(mls):
-    keep = []
-    last = None
-    pdir = None
-    for geom in mls.geoms:
-        for pt in geom.coords:
-            if last is None:
-                last = pt
-                keep.append(pt)
-            elif pdir is None:
-                pdir = direction(keep[-1], pt)
-                keep.append(pt)
-            else:
-                this_dir = direction(keep[-1], pt)
-                if this_dir == pdir:
-                    pass
-                elif this_dir == -1 * pdir:
-                    pass
-    return
-
-
-
-def dedup(linestr):
-    seen = set()
-    crds = list(linestr.coords)
-    crvs = []
-    direct = None
-    for i in range(len(crds)):
-        p1= crds[i]
-        # mcc = MepCurve2d(p1, p2)
-        # if mcc.direction * -1 == direct:
-        if crvs:
-            xs = LineString([crvs[-1], p1])
-            prev = LineString(crvs)
-            inter = xs.intersection(prev)
-            if isinstance(inter, LineString):
-                continue
-        crvs.append(p1)
-
-def slow_rebuild(ls1, ls2):
-    un = ls1.union(ls2)
 
 
 

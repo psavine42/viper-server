@@ -1,10 +1,8 @@
-from src.rules.graph import Node, Edge
 from collections import defaultdict as ddict
 from collections import Counter
 from .property import Property
-from . import opers
 from copy import deepcopy
-from viper import nodes_to_nx
+from src.viper import nodes_to_nx
 import random
 
 
@@ -149,13 +147,13 @@ class RuleEngine(object):
         return meta
 
     def plot(self, root, labels):
-        import src.visualize
+        import src.misc.visualize
         meta = self.annotate_type(root, labels)
         def label_fn(n, d):
             sym = d.get('type', '')
             return '{}'.format(sym)
         nxg = nodes_to_nx(root)
-        src.visualize._plot(nxg, label_fn,  meta=meta)
+        src.misc.visualize._plot(nxg, label_fn, edge_fn={'all'}, meta=meta)
 
     def yield_queue(self, root):
         """

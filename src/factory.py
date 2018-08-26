@@ -2,14 +2,12 @@
 convert inputs of various call formats to 'System' objects
 
 """
-from viper import System, GeomType
-from src.geom import MepCurve2d, FamilySymbol
-from enum import Enum
-from shapely.geometry import MultiLineString
+import numpy as np
 from uuid import uuid4
 from shapely.ops import linemerge
-import numpy as np
-from src.utils import round_tup
+
+from src import System, GeomType, MepCurve2d, FamilySymbol
+
 
 class SystemFactory:
     _ROUND = 6

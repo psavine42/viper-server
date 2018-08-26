@@ -1,11 +1,6 @@
-import networkx as nx
-import numpy as np
-from .base import Heuristic, edge_attr
 from src.geomType import GeomType
-from .engine import *
 from .opers import *
 from operator import eq
-
 
 
 class EngineHeurFP(object):
@@ -40,15 +35,12 @@ class EngineHeurFP(object):
         UpElbow = AND(one_pred, one_succ, symbolic, var='elbow+rise')
         mutex(isElbow, UpElbow)
 
-        # isUpright = AND(is_endpnt, symbolic, var='vHead')
+        # isUpright = AND(one_succ, symbolic, var='vHead')
         isDrop = AND(is_endpt, symbolic, var='dHead')
         other_end = AND(is_endpt, NOT(symbolic), var='unlabeled_end')
         mutex(isDrop, other_end)
 
-        # riser = INSUCS(isDrop, lambda xs: xs.count(True) == 1, var='IsRiser')
-
-        rt = Mutex(is_source, other_end, UpElbow,
-                   isDrop, vbranch, hbranch, isElbow, var='solved')
+        rt = Mutex(is_source, other_end, UpElbow, isDrop, vbranch, hbranch, isElbow, var='solved')
         self.root = rt
 
     @property
