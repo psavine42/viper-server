@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../construction-crawl/.idea/construction-crawl.iml" filepath="$PROJECT_DIR$/../construction-crawl/.idea/construction-crawl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../sentiment-discovery/.idea/sentiment-discovery.iml" filepath="$PROJECT_DIR$/../sentiment-discovery/.idea/sentiment-discovery.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/viper.iml" filepath="$PROJECT_DIR$/.idea/viper.iml" />
     </modules>
   </component>

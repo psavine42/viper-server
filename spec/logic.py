@@ -65,16 +65,6 @@ def node_tree(pts, prev=None):
     return prev
 
 
-def load_segs(fl='data1'):
-    import json
-    with open('./data/{}.json'.format(fl), 'r') as f:
-        xs = json.load(f)
-        # print(xs)
-        if len(xs) == 1:
-            segs = json.loads(xs['data'])
-            xs = segs[0]['children']
-        f.close()
-    return xs
 
 
 class TestProp(TestCase):
@@ -194,7 +184,6 @@ class TestProp(TestCase):
             print(n)
         G = viper.nodes_to_nx(prev)
         visualize.gplot(G)
-
 
 
     def test_point(self):

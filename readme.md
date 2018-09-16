@@ -13,8 +13,8 @@
                                   
                                   
 
-
-
+https://threejs.org/docs/#api/core/Raycaster 
+src.lib.meshcat.src.meshcat.servers.zmqserver
 
 
 
@@ -59,6 +59,14 @@ Logic:
     Tee     := 
 
 
+todo 
+
+1) compute vector at each node by iterating through 'own' prop struct
+2) Tree prediction 
+3) or (features of prev: angle, normdist, relative-dist) 
+    - start with random predictions - 
+    3.2) get conditions (room enclosure conditions from model?)
+    3.3) method of computing using 'room boundary' information
     
                             
 """

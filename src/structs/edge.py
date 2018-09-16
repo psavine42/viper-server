@@ -107,3 +107,7 @@ class Edge(GraphData):
     def __str__(self):
         st = '<Edge>:{}, {}'.format(self.geom, self.tmps)
         return st
+
+    def __iter__(self):
+        yield self._src
+        yield self._tgt

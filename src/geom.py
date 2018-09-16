@@ -189,6 +189,12 @@ def to_point(xyz):
         return Point(xyz)
 
 
+def angle_to(c1, c2):
+    cc1 = c1.direction if isinstance(c1, MepCurve2d) else c1
+    cc2 = c2.direction if isinstance(c2, MepCurve2d) else c2
+    return math.acos(min(1, abs(np.dot(cc1, cc2))))
+
+
 def add_coord(coord, x=0, y=0, z=0):
     crd = deepcopy(coord)
     if isinstance(crd, tuple):

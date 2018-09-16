@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/../PyTorchSeqLabel" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../construction-crawl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../sentiment-discovery" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/client/meshcat" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/lib/lsi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/meshcat" vcs="Git" />
   </component>
 </project>

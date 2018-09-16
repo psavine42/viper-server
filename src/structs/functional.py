@@ -1,4 +1,6 @@
 from .node import Node
+from shapely.geometry import MultiPoint
+from src.geom import to_Nd
 
 
 def delete_between(node, source, target):
@@ -19,8 +21,6 @@ def node_at(root, coords):
 
 
 def geom_merge(*nodes):
-    from shapely.geometry import MultiPoint
-    from src.geom import to_Nd
     res = []
     ids = set()
     for n in nodes:
@@ -28,8 +28,8 @@ def geom_merge(*nodes):
         res.append(n.as_point)
     mlp_center = MultiPoint(res).centroid
     node = Node(to_Nd(mlp_center))
-    for n in nodes:
 
+    for n in nodes:
         for ins in n.predecessors(edges=True):
             if ins.other_end(n).id not in ids:
                 ins.other_end(n).connect_to(node)
@@ -47,5 +47,6 @@ def geom_merge(*nodes):
     return node
 
 
+# def apply_ppg(node):
 
 

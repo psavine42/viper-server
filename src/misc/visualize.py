@@ -5,7 +5,8 @@ import lib.figures as F
 from src.geomType import GeomType
 import matplotlib.pyplot as plt
 from random import randint
-from mpl_toolkits.mplot3d import Axes3D
+from src.structs import Node, Cell
+
 
 _styles = {
     'tee': {'size': 100, 'color': 1},
@@ -22,12 +23,6 @@ def plot(mls, ext=0.2):
     ax = fig.add_subplot(121)
     for a in list(mls):
         F.plot_line(ax, a, color=F.DARKGRAY)
-        # F.plot_coords(ax, pt, color=F.RED)
-
-    # for pt in sys.G.nodes:
-    #    x, y = pt
-    #     ax.plot(x, y, 'o', color=F.RED)
-
     ax.set_title('b) collection')
     pyplot.show()
 
@@ -56,7 +51,7 @@ def get_keys(node, data, keys):
     if 'all' in keys:
         keys = data.keys()
     for k in keys:
-        st += ' {}: {} '.format(k, data.get(k, ''))
+        st += '\n {}: {} '.format(k, data.get(k, ''))
     return st
 
 
@@ -65,17 +60,58 @@ def hcolor():
     return '#' + ''.join(_HEX[randint(0, len(_HEX)-1)] for _ in range(6))
 
 
-def simple_plot(G, meta=_styles, label=True):
+def simple_plot(G, kys, meta=_styles, label=True):
     pos = nx.spring_layout(G)
-    labels = {}
+
+    colors, labels, sizes =  [], {}, []
     for (p, d) in G.nodes(data=True):
-        labels[p] = p
+        labels[p] = get_keys(p, d, kys)
+        n_type = d.get('type', None)
+        colors.append(meta.get(n_type, {}).get('color', 0.45))
+        sizes.append(meta.get(n_type, {}).get('size', 20))
     nx.draw(G, pos,
             labels=labels,
             with_labels=label,
             arrowsize=20,
+            node_size=sizes,
+            node_color=colors,
             edge_cmap=pyplot.cm.Blues,
             font_size=10)
+    pylab.show()
+
+
+def prop_plot(G,  meta=_styles, label=True, pos=None):
+    posx = pos if pos is not None else nx.spring_layout(G)
+    # print(pos)
+    colors, labels, sizes =  [], {}, []
+    for (p, d) in G.nodes(data=True):
+
+
+        n_type = d.get('type', None)
+
+        if n_type == 'cell' :
+            if d.get('var', None) is not None and  'IN_'  in d.get('var', ''):
+                n_type = 'cell+input'
+
+            elif d.get('var', '') == 'res':
+                n_type = 'cell+res'
+
+            elif d.get('content', None) is not None:
+                n_type = 'cell+content'
+
+        tkys = meta.get(n_type, {})['keys']
+        labels[p] = get_keys(p, d, tkys)
+        colors.append(meta.get(n_type, {}).get('color', 0.45))
+        sizes.append(meta.get(n_type, {}).get('size', 20) )
+
+    nx.draw(G, posx,
+            labels=labels,
+            with_labels=label,
+            arrowsize=20,
+            node_size=sizes,
+            node_color=colors,
+            edge_cmap=pyplot.cm.Blues,
+            font_size=11)
     pylab.show()
 
 
@@ -99,7 +135,6 @@ def plot3d(root, meta=None):
     fig = plt.figure()
     fig.set_size_inches(24, 12)
     ax = fig.add_subplot(111, projection='3d')
-    # ax.set_zlim([-2, 2])
     ax.axis('off')
     for n in root.__iter__():
         t = n.get('type', None)
@@ -131,7 +166,7 @@ def _plot(G, lbl_fn, edge_fn=None, meta=_styles, label=True):
 
         colors.append(meta.get(n_type, {}).get('color', 0.45))
         sizes.append(meta.get(n_type, {}).get('size', 20))
-        labels[p] = lbl_fn(p, d)
+        labels[p] = get_keys(p, d, lbl_fn)
 
     edge_fn = edge_fn if edge_fn else {'order'}
     edge_labels = {}
@@ -153,7 +188,7 @@ def _plot(G, lbl_fn, edge_fn=None, meta=_styles, label=True):
 
 
 def gplot(G, **kwargs):
-    _plot(G, default_label_fn, **kwargs)
+    _plot(G, {'label'}, **kwargs)
 
 
 def ord_plot(G, **kwargs):
@@ -167,11 +202,37 @@ class Plot(object):
     edge:
     node:
     """
-    def __init__(self, **kwargs):
+    def __init__(self, *data, **kwargs):
         self._mode = kwargs.get('mode', 2)
         self._dim = kwargs.get('dim', 2)
+        self._pos_fn = kwargs.get('pos', None)
         self._edge_k = kwargs.get('edge', {})
         self._node_k = kwargs.get('node', {})
+
+        self._node_type_k = kwargs.get('ntype', None)
+
+        self._meta = kwargs.get('meta', {})
+        self._font = kwargs.get('font', 10)
+        self._arrow = kwargs.get('font', 20)
+        self._plot_fn = None
+        if data:
+            self.plot(data)
+
+    def _plot_(self, G, pos, sizes, labels, colors):
+        nx.draw(G, pos,
+                node_size=sizes,
+                labels=labels,
+                with_labels=True,
+                arrowsize=self._arrow,
+                edge_cmap=pyplot.cm.Blues,
+                node_color=colors,
+                font_size=self._font)
+
+    def _label(self, n, d, label_fn):
+        if callable(label_fn):
+            pass
+        elif type(label_fn) in [set, list]:
+            pass
 
     def edge_labels(self, G):
         res = {}
@@ -193,28 +254,98 @@ class Plot(object):
                 res[(k, to)] = st
         return res
 
-    def plot(self, root):
+    def __pos_from_node_coord(self, x):
+        return list(x)[0:2]
+
+    def __pos_geom(self, x):
+        x, y, z = x.geom
+        return [x], [y], [z]
+
+    def plot(self, g):
+        self.__validate_meta()
+
+        if isinstance(g, nx.DiGraph):
+            if self._pos_fn is None:
+                node = next(g.nbunch_iter())
+                if isinstance(node, tuple) and len(node) in [2, 3]:
+                    self._pos_fn = self.__pos_from_node_coord
+
+            if self._dim == 3:
+                self._plot_fn = None
+            elif self._dim == 2:
+                self._plot_2dG(g)
+
+        elif isinstance(g, Node):
+
+            if self._dim == 3:
+                self.plot3d_nodes(g)
+            elif self._dim == 2:
+                pass
+
+        # elif isinstance(g, Cell):
+
+        pass
+
+    def plot2d(self):
+        pass
+
+    def _get_meta_val(self, k):
+        if k not in self._meta:
+            v = {}
+            v['color'] = hcolor()
+            v['size'] = randint(30, 200)
+            self._meta[k] = v
+            return v['size'], v['color']
+        else:
+            v = self._meta[k]
+            return v['size'], v['color']
+
+    def __validate_meta(self):
+        for k, v in self._meta.items():
+            if 'color' not in v or isinstance(v['color'], float):
+                v['color'] = hcolor()
+            if 'size' not in v:
+                v['size'] = randint(30, 200)
+
+    def _plot_2dG(self, G):
+        pos, colors, labels, sizes = {}, [], {}, []
+
+        for p, d in G.nodes(data=True):
+            pos[p] = self._pos_fn(p)
+            n_type = self._node_type_k(d)
+            size, color = self._get_meta_val(n_type)
+            colors.append(size)
+            sizes.append(color)
+            labels[p] = get_keys(p, d, self._node_k)
+
+        edge_labels = {}
+        for k, nbrdict in G.adjacency():
+            for to, d in nbrdict.items():
+                edge_labels[(k, to)] = get_keys((k, to), d, self._edge_k)
+
+        self._plot_(G, pos, sizes, labels, colors)
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+    def plot3d_nodes(self, root):
+
         fig = plt.figure()
         fig.set_size_inches(24, 12)
-        if self._dim == 3:
-            ax = fig.add_subplot(111, projection='3d')
-            ax.set_zlim([-2, 2])
-            ax.axis('off')
-            for n in root.__iter__():
-                t = n.get('type', None)
-                if t:
-                    # size = meta[t]['size']
-                    # col = meta[t]['color']
-                    x, y, z = n.geom
-                    ax.plot([x], [y], [z], marker='o', color='r')
+        ax = fig.add_subplot(111, projection='3d')
+        ax.axis('off')
+        for n in root.__iter__():
+            t = n.get('type', None)
+            if t:
+                size, col = self._get_meta_val(t)
 
-                for x in n.successors(edges=True):
-                    p1, p2 = x.geom
+                x, y, z = n.geom
+                ax.plot([x], [y], [z], marker='o', color=col)
 
-                    x, y, z = zip(p1, p2)
-                    ax.plot(x, y, z, color='919191')
-        if self._dim == 3:
-            pass
+            for x in n.successors(edges=True):
+                p1, p2 = x.geom
+
+                x, y, z = zip(p1, p2)
+                ax.plot(x, y, z, color='919191')
+        plt.show()
 
 
 

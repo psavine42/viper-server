@@ -15,6 +15,10 @@ class Node(GraphData):
         self._sucs = []
         self._cond = {}
         self._done = False
+        self._init_cells()
+
+    def _init_cells(self):
+        pass
 
     # Access -------------------------------------------
     @property
@@ -84,6 +88,7 @@ class Node(GraphData):
             return super(Node, self).get(v, d)
 
     def deref(self):
+        """ remove all references to this node """
         for edge in self.successors(edges=True):
             other = edge.other_end(self)
             other.remove_edge(edge)
@@ -100,12 +105,16 @@ class Node(GraphData):
 
     # python -------------------------------------------
     def __eq__(self, other):
-        return self.id == other.id
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+        return False
 
     def __contains__(self, item):
+
         return self.__getitem__(item) is not None
 
     def __getitem__(self, item, **kwargs):
+        """ DEPRECATED """
         item_fn = self._make_item_fn(item)
         for node in self.__iter__(**kwargs):
             if item.__eq__(item_fn(node)):
@@ -121,13 +130,11 @@ class Node(GraphData):
         for n in self.neighbors(fwd=fwd, bkwd=bkwd):
             if n.id not in seen:
                 for x in n.__iter__(seen=seen, fwd=fwd, bkwd=bkwd):
-                    # if edges is False:
                     yield x
-                    # else:
-                    #    yield n.edge_to(x)
         del seen
 
     def __call__(self, fn, acc, **kwargs):
+        """ DEPRECATED """
         acc = fn(self, acc, **kwargs)
         for suc in self.successors():
             acc = suc.__call__(fn, acc, **kwargs)
@@ -144,7 +151,19 @@ class Node(GraphData):
 
     # Util -----------------------------------------------
     def _on_mutate(self):
-        self._tmp = deepcopy(self._data)
+        keys = ['npred', 'nsucs', 'type']
+        for k in keys:
+            # self.write()
+            pass
+
+    def fill_cells(self):
+        keys = ['npred', 'nsucs']
+        for k in keys:
+
+            val = self.get(k, None)
+            print(k, val)
+            #if val:
+                #v.set_contents(val)
 
     def _make_item_fn(self, item):
         if isinstance(item, type(self.geom)):

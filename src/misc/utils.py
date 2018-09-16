@@ -1,6 +1,7 @@
 import networkx as nx
 from src.structs import Node
 
+
 __ROUND = 4
 
 
@@ -19,6 +20,30 @@ def props_to_nx(root):
         for p in n.pre_conditions():
             G.add_edge(str(p), str_nd)
             q.append(p)
+    return G
+
+
+def cells_to_nx(res):
+    """ visualize propagator network with nx """
+    q = []
+    for r in res:
+        q += r.neighbors
+    G = nx.DiGraph()
+    seen = set()
+    while q:
+        el = q.pop(0)
+        if el.id not in seen:
+            seen.add(el.id)
+            G.add_node(el.id, type='prop', fn=str(el._fn.__name__), cnt=el._cnt)
+            out = el.output
+            G.add_node(out.id, type='cell', content=str(out.contents), var=out._var)
+            G.add_edge(el.id, out.id, weight=el._cnt)
+            q.extend(out.neighbors)
+            for n in el.inputs:
+                if n.id not in seen:
+                    G.add_node(n.id, type='cell', content=str(n.contents), var=n._var)
+                    q.extend(n.neighbors)
+                    G.add_edge(n.id, el.id, weight=el._cnt)
     return G
 
 
@@ -51,7 +76,7 @@ def nx_to_nodes(system):
 
 
 def sys_to_nx(system):
-    import networkx as nx
+
     G = nx.DiGraph()
     for _, node in system._node_dict.items():
         for n in node.successors():
@@ -61,7 +86,7 @@ def sys_to_nx(system):
 
 
 def nodes_to_nx(root, fwd=True, bkwd=False):
-    import networkx as nx
+
     G = nx.DiGraph()
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         G.add_node(node.geom, **{**node.data, **node.tmps})

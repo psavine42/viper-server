@@ -1,5 +1,7 @@
 from src.structs.node import Node
 from src.geomType import GeomType
+import json
+
 
 ROOT = (2, 1, 0)
 # test points data
@@ -65,6 +67,16 @@ COMPONENTS = [
 ]
 
 
+def load_segs(fl='data1'):
+
+    with open('./data/{}.json'.format(fl), 'r') as f:
+        xs = json.load(f)
+        # print(xs)
+        if len(xs) == 1:
+            segs = json.loads(xs['data'])
+            xs = segs[0]['children']
+        f.close()
+    return xs
 
 
 def vertical_branch():
@@ -78,4 +90,23 @@ def vertical_branch():
     nb.connect_to(no1)
     nb.connect_to(no2)
     return nin
+
+
+from src import System, KB, RuleEngine, RenderNodeSystem, SystemFactory
+from src.rules import heursitics
+
+
+def get_rendered():
+    data = load_segs(fl='1535158393.0-revit-signal')
+    system = SystemFactory.from_serialized_geom(
+        data, sys=System, root=(-246, 45, 0))
+    system = system.bake()
+    rules = heursitics.EngineHeurFP()
+    Eng = RuleEngine(term_rule=rules.root, mx=2500, debug=False, nlog=20)
+    Kb = KB(rules.root)
+    root = Eng.alg2(system.root, Kb)
+
+    renderer = RenderNodeSystem()
+    root = renderer.render(root)
+    return root
 

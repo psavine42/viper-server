@@ -19,13 +19,15 @@ class GeomType(Enum):
     LINE = 3
     POLYLINE = 4
     SYMBOL = 5
-
+    SOLID = 6
+    FACE = 7
 
 class SystemType(Enum):
     FireProtection = 0
     Plumbing = 1
     HotWater = 2
     ColdWater = 3
+    HVAC = 4
 
 
 

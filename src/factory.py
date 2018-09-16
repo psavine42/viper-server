@@ -93,6 +93,12 @@ class SystemFactory:
             elif gt == GeomType['LINE']:
                 segs.append(cls.handle_segment(pt, layer=lr))
 
+            elif gt == GeomType['SOLID']:
+                segs.append(cls.handle_segment(pt, layer=lr))
+
+            elif gt == GeomType['FACE']:
+                segs.append(cls.handle_segment(pt, layer=lr))
+
             elif gt == GeomType['POLYLINE']:
                 opt = uuid4()
                 xyzs = [pt[x:x + 3] for x in range(0, len(pt), 3)]

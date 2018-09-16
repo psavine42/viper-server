@@ -1,49 +1,21 @@
-
 import random
 from copy import deepcopy
+from .arithmetic import *
+from .cell import Cell
 
 
-# ---------------------------------------------------------------
-class Cell(object):
-    """
-    In this context, a cell is a hyperedge, which
-    are built up
-
-    """
-
-    def __init__(self, var, val=None, propg=None, graph_objs=None):
-        self._id = random.randint(0, 1e6)
-        self._var = var
-        self._value = val
-        self._graph_objs = graph_objs if graph_objs else []
-        self._activate = []
-
-    @property
-    def var(self):
-        return self._var
-
-    @property
-    def value(self):
-        return self._value
-
-    def write(self, node, value):
-        self._var = value
-        for propagator in self._activate:
-            propagator(node, data=value)
-
-    def attach(self, graph_obj):
-        graph_obj.add_cell(self)
-        self._graph_objs.append(graph_obj)
+def uid_fn():
+    return random.randint(0, 1e7)
 
 
-# ---------------------------------------------------------------
+# -------------------------------------------------
 class GraphData(object):
-    __slots__ = ['_id', '_data', '_tmp', '_cell_refs']
+    __slots__ = ['_id', '_data', '_tmp', '_cells']
     def __init__(self, **kwargs):
         self._data = kwargs
-        self._id = random.randint(0, 1e6)
+        self._id = uid_fn()
         self._tmp = deepcopy(self._data)
-        self._cell_refs = {}
+        self._cells = {}
 
     @property
     def id(self):
@@ -57,20 +29,37 @@ class GraphData(object):
     def tmps(self):
         return self._tmp
 
+    @property
+    def cells(self):
+        return self._cells
+
+    def get_cell(self, var):
+        if var in self._cells:
+            return self._cells[var]
+        else:
+            cell = Cell(var=var)
+            self.add_cell(cell)
+            return cell
+
     def get(self, item, d=None):
+        if item in self._cells:
+            if self._cells[item].value:
+                return self._cells[item].value
         return self._tmp.get(item, d)
 
     def update(self, k, v):
         self._data[k] = v
 
     def write(self, k, v):
-        if k in self._cell_refs:
-            self._cell_refs[k].write(self, v)
-        self._tmp[k] = v
+        if k in self._cells.keys():
+            self._cells[k].add_contents(v)
+        else:
+            self._tmp[k] = v
 
     def add_cell(self, cell):
-        self._tmp[cell.var] = cell.value
-        self._cell_refs[cell.var] = cell
+        self._cells[cell.var] = cell
+
+
 
 
 class IEdge(object):
