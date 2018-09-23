@@ -6,7 +6,7 @@ from src.geomType import GeomType
 import matplotlib.pyplot as plt
 from random import randint
 from src.structs import Node, Cell
-
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 _styles = {
     'tee': {'size': 100, 'color': 1},
@@ -85,8 +85,6 @@ def prop_plot(G,  meta=_styles, label=True, pos=None):
     # print(pos)
     colors, labels, sizes =  [], {}, []
     for (p, d) in G.nodes(data=True):
-
-
         n_type = d.get('type', None)
 
         if n_type == 'cell' :
@@ -125,6 +123,14 @@ def dump_data(res_data):
 def print_iter(root):
     for node in root.__iter__():
         print(node)
+
+
+def _3darr(arr, colors=None):
+    fig = plt.figure()
+    fig.set_size_inches(24, 12)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(arr[:, 0], arr[:, 1], arr[:, 2], marker='o', color=colors)
+    plt.show()
 
 
 def plot3d(root, meta=None):
@@ -168,11 +174,13 @@ def _plot(G, lbl_fn, edge_fn=None, meta=_styles, label=True):
         sizes.append(meta.get(n_type, {}).get('size', 20))
         labels[p] = get_keys(p, d, lbl_fn)
 
-    edge_fn = edge_fn if edge_fn else {'order'}
-    edge_labels = {}
-    for k, nbrdict in G.adjacency():
-        for to, d in nbrdict.items():
-            edge_labels[(k, to)] = get_keys((k, to), d, edge_fn)
+    if edge_fn:
+        edge_labels = {}
+        for k, nbrdict in G.adjacency():
+            for to, d in nbrdict.items():
+                edge_labels[(k, to)] = get_keys((k, to), d, edge_fn)
+    else:
+        edge_labels = None
 
     nx.draw(G, pos,
             node_size=sizes,

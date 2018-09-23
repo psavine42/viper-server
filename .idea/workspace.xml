@@ -8,6 +8,7 @@
       <change afterPath="$PROJECT_DIR$/../construction-crawl/app.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/spec/test_crawls.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/spec/test_nlp.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../construction-crawl/spec/test_user.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/__init__.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/analytics/__init__.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/analytics/clustering.py" afterDir="false" />
@@ -16,6 +17,7 @@
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/analytics/search.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/analytics/tsne.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/cfg.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../construction-crawl/src/client/clientstate.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/crawlers/__init__.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/crawlers/base_crawl.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/crawlers/concrete_crawl.py" afterDir="false" />
@@ -24,7 +26,6 @@
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/ext/dssm.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/extractor.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/run_search.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../construction-crawl/src/run_selenium.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/utils.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/vendor/__init__.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/src/vendor/data.py" afterDir="false" />
@@ -33,10 +34,8 @@
       <change afterPath="$PROJECT_DIR$/../construction-crawl/static/js/3d.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/static/js/THREE.MeshLine.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../construction-crawl/templates/user.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/other.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/spec/hvac.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/rules/hvac.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../construction-crawl/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../construction-crawl/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../construction-crawl/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/conf/__init__.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/conf/appconf.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/conf/config.txt" beforeDir="false" />
@@ -87,34 +86,62 @@
       <change beforePath="$PROJECT_DIR$/../construction-crawl/utils/util.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../sentiment-discovery/configure_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/../sentiment-discovery/configure_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../sentiment-discovery/model/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/../sentiment-discovery/model/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/viper.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/viper.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/dist/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/dist/main.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/dist/main.min.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/src/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535157596.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535157739.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158080.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158281.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158337.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158354.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158393.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158667.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535158962.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535159073.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535159106.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535159525.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535214017.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535214028.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535214356.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535214814.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535217682.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535224428.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535226256.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535226312.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535226622.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535226916.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535229180.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535229538.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535229707.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535229742.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535235830.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535235876.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535236596.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535236613.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535238290.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535238307.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535238374.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535239349.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535239891.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535250965.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535251614.0-revit-signal.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/1535251732.0-revit-signal.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/demo.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/demo.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/setup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/tree.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/tree.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/zmqserver.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/zmqserver.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/logic.py" beforeDir="false" afterPath="$PROJECT_DIR$/spec/logic.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/seg_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/spec/seg_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/spec/ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/hvac.py" beforeDir="false" afterPath="$PROJECT_DIR$/spec/hvac.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/factory.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/geom.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/geom.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/geomType.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/geomType.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/misc/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/misc/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/misc/visualize.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/misc/visualize.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/rules/heursitics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/rules/heursitics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/structs/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/structs/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/structs/edge.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/edge.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/structs/functional.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/functional.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/structs/node.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/adapter.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/adapter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/rules/hvac.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/rules/hvac.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/viper.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/viper.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -126,241 +153,122 @@
     <session id="850119316">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
+          <entry key="project.closed" value="1" />
+          <entry key="project.open.time.1" value="1" />
           <entry key="project.open.time.64" value="1" />
           <entry key="project.open.time.7" value="1" />
-          <entry key="project.opened" value="2" />
+          <entry key="project.open.time.74" value="1" />
+          <entry key="project.opened" value="4" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
+          <entry key="gitignore" value="6" />
           <entry key="html" value="75" />
           <entry key="js" value="988" />
-          <entry key="json" value="61" />
+          <entry key="json" value="63" />
           <entry key="md" value="135" />
-          <entry key="py" value="9750" />
+          <entry key="py" value="20123" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="HTML" value="75" />
-          <entry key="JSON" value="61" />
+          <entry key="JSON" value="63" />
           <entry key="JavaScript" value="988" />
           <entry key="Markdown" value="135" />
-          <entry key="Python" value="9750" />
+          <entry key="PLAIN_TEXT" value="6" />
+          <entry key="Python" value="20123" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
           <entry key="csv" value="2" />
+          <entry key="gitignore" value="1" />
           <entry key="html" value="3" />
           <entry key="js" value="5" />
-          <entry key="json" value="13" />
+          <entry key="json" value="16" />
           <entry key="keep" value="1" />
           <entry key="md" value="3" />
-          <entry key="py" value="67" />
+          <entry key="py" value="102" />
           <entry key="xml" value="1" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="HTML" value="3" />
-          <entry key="JSON" value="13" />
+          <entry key="JSON" value="16" />
           <entry key="JavaScript" value="5" />
           <entry key="Markdown" value="3" />
-          <entry key="PLAIN_TEXT" value="3" />
-          <entry key="Python" value="67" />
+          <entry key="PLAIN_TEXT" value="4" />
+          <entry key="Python" value="102" />
           <entry key="XML" value="1" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.30857527">
+    <splitter split-orientation="horizontal" split-proportion="0.30444735">
       <split-first>
-        <leaf SIDE_TABS_SIZE_LIMIT_KEY="525">
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$USER_HOME$/anaconda3/envs/crawl/lib/python3.5/site-packages/scipy/cluster/hierarchy.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="2921">
-                  <caret line="582" column="56" selection-start-line="582" selection-start-column="56" selection-end-line="582" selection-end-column="56" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/../construction-crawl/src/cfg.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="168">
-                  <caret line="6" selection-start-line="6" selection-end-line="6" selection-end-column="7" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/../construction-crawl/spec/test_crawls.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="1019">
-                  <caret line="145" column="8" selection-start-line="145" selection-start-column="8" selection-end-line="147" selection-end-column="22" />
-                  <folding>
-                    <element signature="e#0#15#0" expanded="true" />
-                    <marker date="1536804352749" expanded="true" signature="361:736" ph="..." />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/../construction-crawl/run.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="600">
-                  <caret line="37" column="27" selection-start-line="37" selection-start-column="27" selection-end-line="37" selection-end-column="27" />
-                  <folding>
-                    <element signature="e#0#21#0" expanded="true" />
-                    <marker date="1537112530394" expanded="true" signature="833:978" ph="..." />
-                    <marker date="1537112530394" expanded="true" signature="1238:1297" ph="..." />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/spec/build_spec.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="-1650">
-                  <folding>
-                    <element signature="e#0#15#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/../construction-crawl/src/img2vec/img_to_vec.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="264">
-                  <caret line="15" column="57" selection-start-line="15" selection-start-column="57" selection-end-line="15" selection-end-column="57" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-first>
-      <split-second>
-        <splitter split-orientation="horizontal" split-proportion="0.5288086">
+        <splitter split-orientation="vertical" split-proportion="0.815735">
           <split-first>
             <leaf SIDE_TABS_SIZE_LIMIT_KEY="525">
-              <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/src/viper.py">
-                  <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="616">
-                      <caret line="28" column="33" selection-start-line="28" selection-start-column="33" selection-end-line="28" selection-end-column="33" />
-                      <folding>
-                        <element signature="e#0#44#0" expanded="true" />
-                      </folding>
-                    </state>
-                  </provider>
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/src/factory.py">
-                  <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="790">
-                      <caret line="99" column="16" selection-start-line="99" selection-start-column="16" selection-end-line="99" selection-end-column="16" />
-                      <folding>
-                        <element signature="e#68#86#0" expanded="true" />
-                      </folding>
-                    </state>
-                  </provider>
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="false">
+              <file pinned="false" current-in-tab="true">
                 <entry file="file://$PROJECT_DIR$/spec/hvac.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="60">
-                      <caret line="2" selection-start-line="2" selection-end-line="2" />
+                    <state relative-caret-position="1086">
+                      <caret line="96" column="28" selection-start-line="96" selection-start-column="28" selection-end-line="96" selection-end-column="28" />
                       <folding>
-                        <marker date="1537134018163" expanded="true" signature="56:175" ph="..." />
+                        <element signature="e#2138#2498#0" />
                       </folding>
                     </state>
                   </provider>
                 </entry>
               </file>
               <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/src/rules/heursitics.py">
+                <entry file="file://$PROJECT_DIR$/../construction-crawl/src/cfg.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="5189">
-                      <caret line="279" column="10" selection-start-line="279" selection-start-column="10" selection-end-line="279" selection-end-column="10" />
+                    <state relative-caret-position="132">
+                      <caret line="6" selection-start-line="6" selection-end-line="6" selection-end-column="7" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/../construction-crawl/spec/test_crawls.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="3146">
+                      <caret line="145" column="8" selection-start-line="145" selection-start-column="8" selection-end-line="147" selection-end-column="22" />
                       <folding>
-                        <element signature="e#0#33#0" expanded="true" />
-                      </folding>
-                    </state>
-                  </provider>
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="true">
-                <entry file="file://$PROJECT_DIR$/src/rules/hvac.py">
-                  <provider selected="true" editor-type-id="text-editor">
-                    <state>
-                      <caret lean-forward="true" />
-                    </state>
-                  </provider>
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/src/rules/sizing.py">
-                  <provider selected="true" editor-type-id="text-editor" />
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/data/sample/test1.json">
-                  <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="-1692162">
-                      <caret column="13769" selection-start-column="13769" selection-end-column="13769" />
-                    </state>
-                  </provider>
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/src/geomType.py">
-                  <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="594">
-                      <caret line="22" column="12" selection-start-line="22" selection-start-column="12" selection-end-line="22" selection-end-column="12" />
-                    </state>
-                  </provider>
-                </entry>
-              </file>
-              <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/../construction-crawl/src/db.py">
-                  <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="-194">
-                      <caret line="99" selection-start-line="99" selection-end-line="99" />
-                      <folding>
-                        <element signature="e#0#14#0" expanded="true" />
-                        <element signature="e#2601#2835#0" />
-                        <element signature="e#2857#2945#0" />
-                        <element signature="e#5212#6706#0" />
-                        <marker date="1537112224562" expanded="true" signature="140:142" ph="..." />
-                        <marker date="1537112224562" expanded="true" signature="424:1062" ph="..." />
-                        <marker date="1537112224562" expanded="true" signature="2025:2031" ph="..." />
-                        <marker date="1537112224562" expanded="true" signature="2622:2627" ph="..." />
-                        <marker date="1537112224562" expanded="true" signature="2755:2761" ph="..." />
-                        <marker date="1537112224562" expanded="true" signature="3916:4419" ph="..." />
-                        <marker date="1537112224562" expanded="true" signature="6677:6832" ph="..." />
+                        <marker date="1536804352749" expanded="true" signature="361:736" ph="..." />
                       </folding>
                     </state>
                   </provider>
                 </entry>
               </file>
               <file pinned="false" current-in-tab="false">
-                <entry file="file://$PROJECT_DIR$/../construction-crawl/src/vendor/img_manager.py">
+                <entry file="file://$PROJECT_DIR$/../construction-crawl/run.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="496">
-                      <caret line="57" column="32" selection-start-line="57" selection-start-column="32" selection-end-line="57" selection-end-column="32" />
-                      <folding>
-                        <element signature="e#0#9#0" expanded="true" />
-                        <marker date="1537027647189" expanded="true" signature="1421:1569" ph="..." />
-                        <marker date="1537027647189" expanded="true" signature="2507:2544" ph="..." />
-                      </folding>
+                    <state relative-caret-position="814">
+                      <caret line="37" column="27" selection-start-line="37" selection-start-column="27" selection-end-line="37" selection-end-column="27" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/spec/build_spec.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="4290">
+                      <caret line="195" column="4" selection-start-line="195" selection-start-column="4" selection-end-line="199" selection-end-column="21" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/../construction-crawl/src/img2vec/img_to_vec.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="220">
+                      <caret line="15" column="57" selection-start-line="15" selection-start-column="57" selection-end-line="15" selection-end-column="57" />
                     </state>
                   </provider>
                 </entry>
@@ -368,19 +276,135 @@
             </leaf>
           </split-first>
           <split-second>
-            <leaf>
+            <leaf SIDE_TABS_SIZE_LIMIT_KEY="450">
               <file pinned="false" current-in-tab="true">
-                <entry file="file://$PROJECT_DIR$/../construction-crawl/src/analytics/clustering.py">
+                <entry file="file://$PROJECT_DIR$/src/geomType.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="458">
-                      <caret line="96" column="38" selection-start-line="96" selection-start-column="38" selection-end-line="96" selection-end-column="38" />
+                    <state relative-caret-position="78">
+                      <caret line="17" column="14" selection-start-line="17" selection-start-column="14" selection-end-line="17" selection-end-column="14" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+            </leaf>
+          </split-second>
+        </splitter>
+      </split-first>
+      <split-second>
+        <splitter split-orientation="horizontal" split-proportion="0.5190409">
+          <split-first>
+            <leaf SIDE_TABS_SIZE_LIMIT_KEY="525">
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/geom.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="2281">
+                      <caret line="311" column="32" lean-forward="true" selection-start-line="311" selection-start-column="32" selection-end-line="311" selection-end-column="32" />
                       <folding>
-                        <element signature="e#0#11#0" expanded="true" />
-                        <marker date="1537066477586" expanded="true" signature="901:1227" ph="..." />
-                        <marker date="1537066477586" expanded="true" signature="4971:4977" ph="..." />
-                        <marker date="1537066477586" expanded="true" signature="5309:5377" ph="..." />
-                        <marker date="1537066477586" expanded="true" signature="5377:6128" ph="..." />
+                        <element signature="e#3610#4449#0" />
+                        <element signature="e#4396#4892#0" />
+                        <element signature="e#5090#6150#0" />
+                        <element signature="e#5744#7873#0" />
+                        <marker date="1537664755744" expanded="true" signature="1151:1188" ph="..." />
+                        <marker date="1537664755744" expanded="true" signature="9514:9520" ph="..." />
                       </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/misc/visualize.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="1628">
+                      <caret line="194" column="12" lean-forward="true" selection-start-line="194" selection-start-column="12" selection-end-line="194" selection-end-column="12" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="true">
+                <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/matplotlib/pyplot.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="1311">
+                      <caret line="252" column="16" selection-start-line="252" selection-start-column="11" selection-end-line="252" selection-end-column="16" />
+                      <folding>
+                        <element signature="e#7915#8509#1" expanded="true" />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/rules/hvac.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="110">
+                      <caret line="5" column="19" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/shapely/geometry/polygon.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="6094">
+                      <caret line="339" column="27" selection-start-line="339" selection-start-column="27" selection-end-line="339" selection-end-column="27" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/misc/utils.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="1628">
+                      <caret line="74" column="20" lean-forward="true" selection-start-line="74" selection-start-column="20" selection-end-line="74" selection-end-column="20" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+            </leaf>
+          </split-first>
+          <split-second>
+            <leaf SIDE_TABS_SIZE_LIMIT_KEY="450">
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/trimesh/base.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="1098">
+                      <caret line="443" column="5" selection-start-line="443" selection-start-column="5" selection-end-line="443" selection-end-column="28" />
+                      <folding>
+                        <element signature="e#1377#2677#1" expanded="true" />
+                        <element signature="e#19715#20061#1" expanded="true" />
+                        <element signature="e#71876#72065#1" expanded="true" />
+                        <element signature="e#72142#72475#1" expanded="true" />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/trimesh/scene/scene.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="220">
+                      <caret line="24" column="8" selection-start-line="24" selection-start-column="8" selection-end-line="24" selection-end-column="8" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/viper.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="1078">
+                      <caret line="132" column="26" selection-start-line="132" selection-start-column="26" selection-end-line="132" selection-end-column="26" />
+                      <folding>
+                        <marker date="1537664827305" expanded="true" signature="448:5361" ph="..." />
+                        <marker date="1537664827305" expanded="true" signature="3574:3579" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="true">
+                <entry file="file://$PROJECT_DIR$/.gitignore">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="44">
+                      <caret line="2" column="5" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
                     </state>
                   </provider>
                 </entry>
@@ -414,7 +438,18 @@
       <find>_on_mutate</find>
       <find>stats</find>
       <find>figure</find>
+      <find>_node_dict</find>
+      <find>flatten</find>
+      <find>dista</find>
+      <find>centroid</find>
+      <find>points</find>
+      <find>show</find>
+      <find>@property.se</find>
+      <find>1040148</find>
     </findStrings>
+    <dirStrings>
+      <dir>$PROJECT_DIR$/src</dir>
+    </dirStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -422,13 +457,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/../construction-crawl/src/img2vec/__init__.py" />
-        <option value="$PROJECT_DIR$/../construction-crawl/src/search.py" />
-        <option value="$PROJECT_DIR$/../construction-crawl/spec/spc.py" />
-        <option value="$PROJECT_DIR$/../construction-crawl/templates/login.html" />
-        <option value="$PROJECT_DIR$/../construction-crawl/src/vendor_objects.py" />
-        <option value="$PROJECT_DIR$/../construction-crawl/src/data.py" />
-        <option value="$PROJECT_DIR$/../construction-crawl/src/vendor/__init__.py" />
         <option value="$PROJECT_DIR$/../construction-crawl/src/run_search.py" />
         <option value="$PROJECT_DIR$/../construction-crawl/src/crawlers/__init__.py" />
         <option value="$PROJECT_DIR$/../construction-crawl/src/crawlers/base_crawl.py" />
@@ -469,10 +497,17 @@
         <option value="$PROJECT_DIR$/../construction-crawl/src/analytics/tsne.py" />
         <option value="$PROJECT_DIR$/../construction-crawl/run.py" />
         <option value="$PROJECT_DIR$/src/geomType.py" />
-        <option value="$PROJECT_DIR$/src/factory.py" />
-        <option value="$PROJECT_DIR$/spec/hvac.py" />
         <option value="$PROJECT_DIR$/src/rules/heursitics.py" />
+        <option value="$PROJECT_DIR$/src/__init__.py" />
+        <option value="$PROJECT_DIR$/src/factory.py" />
         <option value="$PROJECT_DIR$/src/rules/hvac.py" />
+        <option value="$PROJECT_DIR$/src/misc/utils.py" />
+        <option value="$PROJECT_DIR$/src/misc/visualize.py" />
+        <option value="$PROJECT_DIR$/spec/hvac.py" />
+        <option value="$PROJECT_DIR$/src/geom.py" />
+        <option value="$PROJECT_DIR$/data/sample/geom2.json" />
+        <option value="$PROJECT_DIR$/src/viper.py" />
+        <option value="$PROJECT_DIR$/.gitignore" />
       </list>
     </option>
   </component>
@@ -493,10 +528,10 @@
     </packageJsonPaths>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="814" />
-    <option name="y" value="27" />
-    <option name="width" value="3026" />
-    <option name="height" value="2109" />
+    <option name="x" value="720" />
+    <option name="y" value="94" />
+    <option name="width" value="3122" />
+    <option name="height" value="2036" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
@@ -516,18 +551,13 @@
             <path>
               <item name="viper" type="b2602c69:ProjectViewProjectNode" />
               <item name="viper" type="462c0819:PsiDirectoryNode" />
-              <item name="spec" type="462c0819:PsiDirectoryNode" />
+              <item name="data" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="viper" type="b2602c69:ProjectViewProjectNode" />
               <item name="viper" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="viper" type="b2602c69:ProjectViewProjectNode" />
-              <item name="viper" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="rules" type="462c0819:PsiDirectoryNode" />
+              <item name="data" type="462c0819:PsiDirectoryNode" />
+              <item name="sample" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -542,7 +572,7 @@
     <property name="ToolWindowEvent Log.ShowToolbar" value="false" />
     <property name="ToolWindowTerminal.ShowToolbar" value="false" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../sentiment-discovery" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -583,10 +613,9 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="814" y="27" width="3026" height="2109" extended-state="0" />
-    <editor active="true" />
+    <frame x="720" y="94" width="3122" height="2036" extended-state="0" />
     <layout>
-      <window_info active="true" content_ui="combo" x="134" y="356" width="442" height="1730" id="Project" order="0" type="FLOATING" visible="true" weight="0.24991614" />
+      <window_info active="true" content_ui="combo" x="160" y="800" width="442" height="1280" id="Project" order="0" type="FLOATING" visible="true" weight="0.24991614" />
       <window_info id="Structure" order="1" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -616,237 +645,7 @@
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/__init__.py</url>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
-  </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/crawlers/base_crawl.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="616">
-          <caret line="29" column="24" selection-start-line="29" selection-start-column="24" selection-end-line="29" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/static/json/ts.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="154">
-          <caret line="7" selection-start-line="7" selection-end-line="7" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../PyTorchSeqLabel/model/bilstm.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../PyTorchSeqLabel/main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-185" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../PyTorchSeqLabel/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="203">
-            <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda3/envs/crawl/lib/python3.5/site-packages/torchnlp/word_to_vector/char_n_gram.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="603">
-          <caret line="82" column="37" selection-start-line="82" selection-start-column="37" selection-end-line="82" selection-end-column="37" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/analytics/search.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="144" column="31" selection-start-line="144" selection-start-column="31" selection-end-line="144" selection-end-column="31" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-            <marker date="1536964497244" expanded="true" signature="1890:1896" ph="..." />
-            <marker date="1536964497244" expanded="true" signature="3227:4361" ph="..." />
-            <marker date="1536964497244" expanded="true" signature="4105:4114" ph="..." />
-            <marker date="1536964497244" expanded="true" signature="4788:4839" ph="..." />
-            <marker date="1536964497244" expanded="true" signature="5166:5287" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../sentiment-discovery/fp16/fp16.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-10361">
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../sentiment-discovery/configure_data.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="143">
-          <caret line="104" column="35" selection-start-line="104" selection-start-column="35" selection-end-line="104" selection-end-column="35" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/ext/paragraph-vectors/paragraphvec/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1422">
-          <caret line="51" column="50" selection-start-line="51" selection-start-column="50" selection-end-line="51" selection-end-column="50" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="418">
-            <caret line="19" column="4" selection-start-line="19" selection-start-column="4" selection-end-line="19" selection-end-column="4" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/static/js/THREE.MeshLine.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5302">
-          <caret line="460" column="26" selection-start-line="460" selection-start-column="26" selection-end-line="460" selection-end-column="26" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/templates/user.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="622">
-          <caret line="41" column="44" lean-forward="true" selection-start-line="41" selection-start-column="44" selection-end-line="41" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../sentiment-discovery/model/model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="668">
-          <caret line="45" column="28" selection-start-line="45" selection-start-column="28" selection-end-line="45" selection-end-column="28" />
-          <folding>
-            <element signature="e#0#11#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../sentiment-discovery/classifier.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1280">
-          <caret line="40" column="41" selection-start-line="40" selection-start-column="27" selection-end-line="40" selection-end-column="41" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/spec/test_nlp.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="56">
-          <caret line="49" selection-start-line="49" selection-end-line="49" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-            <marker date="1536977955534" expanded="true" signature="1263:1267" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda3/envs/crawl/lib/python3.5/site-packages/scipy/cluster/hierarchy.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2921">
-          <caret line="582" column="56" selection-start-line="582" selection-start-column="56" selection-end-line="582" selection-end-column="56" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/vendor/img_manager.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="496">
-          <caret line="57" column="32" selection-start-line="57" selection-start-column="32" selection-end-line="57" selection-end-column="32" />
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-            <marker date="1537027647189" expanded="true" signature="1421:1569" ph="..." />
-            <marker date="1537027647189" expanded="true" signature="2507:2544" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/spec/test_crawls.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1019">
-          <caret line="145" column="8" selection-start-line="145" selection-start-column="8" selection-end-line="147" selection-end-column="22" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-            <marker date="1536804352749" expanded="true" signature="361:736" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$USER_HOME$/anaconda3/envs/crawl/lib/python3.5/site-packages/torchvision-0.2.1-py3.5.egg!/torchvision/transforms/transforms.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="743">
-          <caret line="141" column="11" lean-forward="true" selection-start-line="141" selection-start-column="11" selection-end-line="141" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/img2vec/img_to_vec.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="15" column="57" selection-start-line="15" selection-start-column="57" selection-end-line="15" selection-end-column="57" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/extractor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="902">
-          <caret line="41" column="12" selection-start-line="41" selection-start-column="12" selection-end-line="41" selection-end-column="12" />
-          <folding>
-            <element signature="e#55#76#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/cfg.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="6" selection-start-line="6" selection-end-line="6" selection-end-column="7" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda3/envs/crawl/lib/python3.5/site-packages/sklearn/manifold/t_sne.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15633">
-          <caret line="595" column="8" selection-start-line="595" selection-start-column="8" selection-end-line="595" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/lib/TSNE-Embedding-Visualisation/index.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22">
-          <caret line="9310" column="368" selection-start-line="9310" selection-start-column="368" selection-end-line="9310" selection-end-column="368" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../sentiment-discovery/model/sentiment_classifier.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="397">
-          <caret line="31" column="37" selection-start-line="31" selection-start-column="37" selection-end-line="31" selection-end-column="37" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../construction-crawl/static/js/3d.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="884">
@@ -893,9 +692,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="941">
           <caret line="48" column="24" selection-start-line="48" selection-start-column="24" selection-end-line="48" selection-end-column="24" />
-          <folding>
-            <element signature="e#0#36#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -903,9 +699,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="220">
           <caret line="10" lean-forward="true" selection-start-line="10" selection-end-line="10" />
-          <folding>
-            <element signature="e#0#17#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -913,19 +706,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-194">
           <caret line="99" selection-start-line="99" selection-end-line="99" />
-          <folding>
-            <element signature="e#0#14#0" expanded="true" />
-            <element signature="e#2601#2835#0" />
-            <element signature="e#2857#2945#0" />
-            <element signature="e#5212#6706#0" />
-            <marker date="1537112224562" expanded="true" signature="140:142" ph="..." />
-            <marker date="1537112224562" expanded="true" signature="424:1062" ph="..." />
-            <marker date="1537112224562" expanded="true" signature="2025:2031" ph="..." />
-            <marker date="1537112224562" expanded="true" signature="2622:2627" ph="..." />
-            <marker date="1537112224562" expanded="true" signature="2755:2761" ph="..." />
-            <marker date="1537112224562" expanded="true" signature="3916:4419" ph="..." />
-            <marker date="1537112224562" expanded="true" signature="6677:6832" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -940,59 +720,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1883">
           <caret line="161" column="37" selection-start-line="161" selection-start-column="37" selection-end-line="161" selection-end-column="37" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-            <marker date="1537112530358" expanded="true" signature="4802:5004" ph="..." />
-            <marker date="1537112530358" expanded="true" signature="5004:5007" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/viper.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="616">
-          <caret line="28" column="33" selection-start-line="28" selection-start-column="33" selection-end-line="28" selection-end-column="33" />
-          <folding>
-            <element signature="e#0#44#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/geomType.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="594">
-          <caret line="22" column="12" selection-start-line="22" selection-start-column="12" selection-end-line="22" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/analytics/clustering.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="458">
-          <caret line="96" column="38" selection-start-line="96" selection-start-column="38" selection-end-line="96" selection-end-column="38" />
-          <folding>
-            <element signature="e#0#11#0" expanded="true" />
-            <marker date="1537066477586" expanded="true" signature="901:1227" ph="..." />
-            <marker date="1537066477586" expanded="true" signature="4971:4977" ph="..." />
-            <marker date="1537066477586" expanded="true" signature="5309:5377" ph="..." />
-            <marker date="1537066477586" expanded="true" signature="5377:6128" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/data/sample/test1.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1692162">
-          <caret column="13769" selection-start-column="13769" selection-end-column="13769" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/factory.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="790">
-          <caret line="99" column="16" selection-start-line="99" selection-start-column="16" selection-end-line="99" selection-end-column="16" />
-          <folding>
-            <element signature="e#68#86#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1000,13 +727,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="527">
           <caret line="62" selection-start-line="62" selection-end-line="62" />
-          <folding>
-            <element signature="e#0#13#0" expanded="true" />
-            <marker date="1537035672152" expanded="true" signature="200:794" ph="..." />
-            <marker date="1537035672152" expanded="true" signature="692:738" ph="..." />
-            <marker date="1537035672152" expanded="true" signature="2023:2028" ph="..." />
-            <marker date="1537035672152" expanded="true" signature="2320:2323" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1021,40 +741,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
           <caret line="9" selection-start-line="9" selection-end-line="9" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../construction-crawl/run.py">
+    <entry file="file://$PROJECT_DIR$/run.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="600">
-          <caret line="37" column="27" selection-start-line="37" selection-start-column="27" selection-end-line="37" selection-end-column="27" />
-          <folding>
-            <element signature="e#0#21#0" expanded="true" />
-            <marker date="1537112530394" expanded="true" signature="833:978" ph="..." />
-            <marker date="1537112530394" expanded="true" signature="1238:1297" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/spec/build_spec.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1650">
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/spec/hvac.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="2" selection-start-line="2" selection-end-line="2" />
-          <folding>
-            <marker date="1537134018163" expanded="true" signature="56:175" ph="..." />
-          </folding>
+        <state relative-caret-position="196">
+          <caret line="7" column="20" selection-start-line="7" selection-start-column="14" selection-end-line="7" selection-end-column="20" />
         </state>
       </provider>
     </entry>
@@ -1065,16 +758,267 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5189">
           <caret line="279" column="10" selection-start-line="279" selection-start-column="10" selection-end-line="279" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/crawl/lib/python3.5/site-packages/scipy/cluster/hierarchy.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2921">
+          <caret line="582" column="56" selection-start-line="582" selection-start-column="56" selection-end-line="582" selection-end-column="56" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/geo.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1850">
+          <caret line="74" column="12" lean-forward="true" selection-start-line="74" selection-start-column="12" selection-end-line="74" selection-end-column="12" />
           <folding>
-            <element signature="e#0#33#0" expanded="true" />
+            <element signature="e#89#108#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/data/sample/test1.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1370">
+          <caret column="13769" selection-start-column="13769" selection-end-column="13769" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/server.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="300">
+          <caret line="15" column="36" lean-forward="true" selection-start-line="15" selection-start-column="36" selection-end-line="15" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharm2018.2/system/python_stubs/13663939/scipy/spatial/ckdtree.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="396">
+          <caret line="491" column="12" lean-forward="true" selection-start-line="491" selection-start-column="12" selection-end-line="491" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/numpy/core/fromnumeric.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="182">
+          <caret line="691" column="4" selection-start-line="691" selection-start-column="4" selection-end-line="691" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/run_selenium.py" />
+    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/cfg.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="132">
+          <caret line="6" selection-start-line="6" selection-end-line="6" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../construction-crawl/spec/test_crawls.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3146">
+          <caret line="145" column="8" selection-start-line="145" selection-start-column="8" selection-end-line="147" selection-end-column="22" />
+          <folding>
+            <marker date="1536804352749" expanded="true" signature="361:736" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../construction-crawl/run.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="814">
+          <caret line="37" column="27" selection-start-line="37" selection-start-column="27" selection-end-line="37" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/spec/build_spec.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4290">
+          <caret line="195" column="4" selection-start-line="195" selection-start-column="4" selection-end-line="199" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/img2vec/img_to_vec.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="220">
+          <caret line="15" column="57" selection-start-line="15" selection-start-column="57" selection-end-line="15" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/geomType.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="78">
+          <caret line="17" column="14" selection-start-line="17" selection-start-column="14" selection-end-line="17" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/shapely/geometry/polygon.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="6094">
+          <caret line="339" column="27" selection-start-line="339" selection-start-column="27" selection-end-line="339" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/matplotlib/axes/_axes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="41888">
+          <caret line="4099" column="8" selection-start-line="4099" selection-start-column="8" selection-end-line="4099" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/structs/node.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="176">
+          <caret line="8" column="17" selection-start-line="8" selection-start-column="17" selection-end-line="8" selection-end-column="17" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/structs/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="242">
+          <caret line="11" column="6" selection-start-line="11" selection-start-column="6" selection-end-line="11" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/factory.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1914">
+          <caret line="98" column="12" selection-start-line="98" selection-start-column="12" selection-end-line="98" selection-end-column="68" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="154">
+          <caret line="7" column="56" selection-start-line="7" selection-start-column="56" selection-end-line="7" selection-end-column="56" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../construction-crawl/src/analytics/clustering.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2112">
+          <caret line="96" column="38" selection-start-line="96" selection-start-column="38" selection-end-line="96" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharm2018.2/system/python_stubs/13663939/openmesh/TriMesh.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1174">
+          <caret line="1266" column="26" selection-start-line="1266" selection-start-column="8" selection-end-line="1266" selection-end-column="26" />
+          <folding>
+            <element signature="e#6961#7454#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/trimesh/util.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1070">
+          <caret line="197" column="10" lean-forward="true" selection-start-line="197" selection-start-column="10" selection-end-line="197" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/spec/propagate.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/rules/hvac.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret lean-forward="true" />
+        <state relative-caret-position="110">
+          <caret line="5" column="19" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/misc/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1628">
+          <caret line="74" column="20" lean-forward="true" selection-start-line="74" selection-start-column="20" selection-end-line="74" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/misc/visualize.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1628">
+          <caret line="194" column="12" lean-forward="true" selection-start-line="194" selection-start-column="12" selection-end-line="194" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/trimesh/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1098">
+          <caret line="443" column="5" selection-start-line="443" selection-start-column="5" selection-end-line="443" selection-end-column="28" />
+          <folding>
+            <element signature="e#1377#2677#1" expanded="true" />
+            <element signature="e#19715#20061#1" expanded="true" />
+            <element signature="e#71876#72065#1" expanded="true" />
+            <element signature="e#72142#72475#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/spec/hvac.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1086">
+          <caret line="96" column="28" selection-start-line="96" selection-start-column="28" selection-end-line="96" selection-end-column="28" />
+          <folding>
+            <element signature="e#2138#2498#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/trimesh/scene/scene.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="220">
+          <caret line="24" column="8" selection-start-line="24" selection-start-column="8" selection-end-line="24" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/geom.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2281">
+          <caret line="311" column="32" lean-forward="true" selection-start-line="311" selection-start-column="32" selection-end-line="311" selection-end-column="32" />
+          <folding>
+            <element signature="e#3610#4449#0" />
+            <element signature="e#4396#4892#0" />
+            <element signature="e#5090#6150#0" />
+            <element signature="e#5744#7873#0" />
+            <marker date="1537664755744" expanded="true" signature="1151:1188" ph="..." />
+            <marker date="1537664755744" expanded="true" signature="9514:9520" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data/sample/geom2.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="349">
+          <caret column="17312303" selection-start-column="17312303" selection-end-column="17312303" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/viper/lib/python3.7/site-packages/matplotlib/pyplot.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1311">
+          <caret line="252" column="16" selection-start-line="252" selection-start-column="11" selection-end-line="252" selection-end-column="16" />
+          <folding>
+            <element signature="e#7915#8509#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/viper.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1078">
+          <caret line="132" column="26" selection-start-line="132" selection-start-column="26" selection-end-line="132" selection-end-column="26" />
+          <folding>
+            <marker date="1537664827305" expanded="true" signature="448:5361" ph="..." />
+            <marker date="1537664827305" expanded="true" signature="3574:3579" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="44">
+          <caret line="2" column="5" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
         </state>
       </provider>
     </entry>

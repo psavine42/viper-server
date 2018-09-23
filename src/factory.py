@@ -6,7 +6,19 @@ import numpy as np
 from uuid import uuid4
 from shapely.ops import linemerge
 
-from src import System, GeomType, MepCurve2d, FamilySymbol
+from src import System, GeomType, MepCurve2d, FamilySymbol, MEPSolidLine
+
+
+
+"""
+Revit Args
+
+Mode : 2d or 3d 
+
+
+
+
+"""
 
 
 class SystemFactory:
@@ -94,7 +106,7 @@ class SystemFactory:
                 segs.append(cls.handle_segment(pt, layer=lr))
 
             elif gt == GeomType['SOLID']:
-                segs.append(cls.handle_segment(pt, layer=lr))
+                segs.append(MEPSolidLine(x))
 
             elif gt == GeomType['FACE']:
                 segs.append(cls.handle_segment(pt, layer=lr))

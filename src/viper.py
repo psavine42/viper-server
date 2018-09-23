@@ -1,26 +1,159 @@
 from collections import defaultdict as ddict
+from collections import Counter
 
 from .misc import visualize
 from .geomType import GeomType
 from .geom import to_Nd
 
+import numpy as np
 import src.propogate as gp
 from src.misc.utils import *
 
 from shapely.geometry import Point
 from shapely.ops import linemerge, nearest_points
+from typing import List
+import torch
+from src.geom import MEPSolidLine
+from scipy import spatial
+
+
+class SolidSystem(object):
+    _ROUND = 0
+    """
+    Solid System has solids, so first must infer lines from solids 
+    """
+    def __init__(self, solids=[], symbols=[], root=None, **kwargs):
+        self._root = None
+        self._symbols = {round_tup(s.points[0], self._ROUND): s for s in symbols}
+        self._keep_layers = []
+        self._solid_centers = []
+        self._face_centers = None
+        self._index_starts = []
+        self._index_layers = []
+        self._tree = None
+        if solids:
+            self.res = self._build2(solids)
+
+    def _prebuld_indexes(self, solids: List[MEPSolidLine], mode='np') -> None:
+        # _face_centers = []
+        self._index_starts = [0]  # faces[0] starts at index 0
+        _num_solids = len(solids)
+
+        for s in solids:
+            self._index_starts.append(self._index_starts[-1] + len(s.children))
+            self._index_layers.append(s.layer)
+            self._solid_centers.append(s.centroid)
+        if mode == 'np':
+            self._index_layers = np.asarray(self._index_layers)
+            self._solid_centers = np.asarray(self._solid_centers)
+            self._tree = spatial.KDTree(self._solid_centers)
+            # self._face_centers = np.asarray(_face_centers)
+        else:
+            self._solid_centers = torch.Tensor(self._solid_centers)
+            # self._face_centers = torch.Tensor(_face_centers)
+        print('layers :{} \ncentroids: {} \nstarts: {} '.format(
+            len(self._index_layers), len(self._solid_centers), len(self._index_starts)))
+
+    def _build(self, solids: List[MEPSolidLine]):
+        """
+            returns connectivity matrix to turn into line graph
+
+            [index_of_solid : [ face_to_connect,  index_of_other_face ] ]
+
+            :param solids:
+            :return:
+        """
+        self._prebuld_indexes(solids)
+        results = []
+        _num_solids = len(solids)
+        _indexes = set(range(0, self._face_centers.size(0)))
+
+        for i in range(_num_solids):
+
+            start_of_this = self._index_starts[i]
+            end_of_this = self._index_starts[i+1]
+            n_of_this = end_of_this - start_of_this
+            range_this = set(range(start_of_this, end_of_this))
+
+            tensr_this = torch.LongTensor(list(_indexes.difference(range_this)))
+            best_dist_solid = 1e9
+            best_indx_solid = [None, None]
+
+            # todo implement as tensors?
+            # todo dynamic hopping ceonnections cannot be on adjacent faces of a geom ??
+
+            for j in range_this:
+
+                min_dist = torch.index_select(self._face_centers, 0, tensr_this) - self._face_centers[j]
+                min_dist = torch.sum(min_dist ** 2, dim=1) ** 0.5
+                min_dist, nearest_ix = min_dist.topk(1, largest=False)
+                min_dist, nearest_ix = min_dist.item(), nearest_ix.item()
+
+                if min_dist < best_dist_solid:
+                    best_dist_solid = min_dist
+                    re_near = nearest_ix + n_of_this if nearest_ix > j else nearest_ix
+                    best_indx_solid = [j, re_near]
+            results.append(best_indx_solid)
+        return results
+
+    def _build2(self, solids: List[MEPSolidLine]):
+        """
+        returns connectivity matrix to turn into line graph
+
+        [index_of_solid : [ face_to_connect,  index_of_other_face ] ]
+
+        :param solids:
+        :return:
+        """
+        results = []
+        self._prebuld_indexes(solids)
+        print(Counter(self._index_layers.tolist()))
+        for _layer in set(self._index_layers):
+
+            ixs_on_layer = np.where(self._index_layers == _layer)[0]
+            if len(ixs_on_layer) < 3:
+                continue
+
+            ndict = {}
+            todo_local = list(range(len(ixs_on_layer)))
+            # lyr_centrs = self._solid_centers[ixs_on_layer]
+
+            for i in todo_local:
+                this_gix = ixs_on_layer[i]
+                this_xyz = self._solid_centers[this_gix]
+                this_cord = tuple(this_xyz.tolist())
+                # dist_mat = spatial.distance.cdist(lyr_centrs, [this_xyz]).flatten()
+                # othr_lix = np.argpartition(dist_mat, 2, axis=-1)[1]
+                # othr_gix = ixs_on_layer[othr_lix]
+
+                # othr_cord = tuple(self._solid_centers[othr_gix].tolist())
+                ndict[this_cord] = Node(this_cord, item=solids[this_gix])
+
+                dist_mat, ixs = self._tree.query([this_xyz], k=3)
+                # print(ixs)
+
+                for othr_gix in ixs[0].tolist()[1:]:
+                    othr_cord = tuple(self._solid_centers[othr_gix ].tolist())
+                    if othr_cord not in ndict:
+                        ndict[othr_cord] = Node(othr_cord, item=solids[othr_gix])
+                    ndict[this_cord].connect_to(ndict[othr_cord])
+
+                # ndict[this_cord] = Node(this_cord, item=solids[this_gix])
+
+            results.append(ndict)
+        return results
 
 
 class System(object):
     _ROUND = 0
 
     def __init__(self, segments=[], symbols=[], root=None, **kwargs):
-        self._node_dict = dict()
         self._root = None
         self._symbols = {round_tup(s.points[0], self._ROUND): s for s in symbols}
         self._keep_layers = []
         if segments:
             self._build(segments, root)
+        return
 
     def _filter_keep(self, lines, pt):
         if pt is None:
@@ -47,14 +180,15 @@ class System(object):
         root, _ = nearest_points(mls_ob, Point(pt))
         root = to_Nd(root, 3)
 
-        merged = list(mls_ob)
-        print('building', len(merged))
+        merged = list(mls_ob)   # List of MultiLineStrings merged by shapely
+        dists = ddict(dict)     # distances of [NodeSystem to NodeSystem]
+        acomps = []             # holds NodeSystem equivalent of LineString
 
-        dists = ddict(dict)
-        acomps = []
         for i in range(len(merged)):
-            ndict = dict()
+            ndict = dict()      # holds {(x,y,z) : Node(x,y, z) }
             cords = list(merged[i].coords)
+
+            # iterate through each point on line making nodes along the way
             for k in range(len(cords)):
                 pnt = cords[k]
                 if pnt not in ndict:
@@ -67,15 +201,19 @@ class System(object):
                         ndict[pnt] = Node(pnt, **ds.to_dict)
                     else:
                         ndict[pnt] = Node(pnt)
+
                 if k > 0:
+                    # connect k_th point in line to k_th + 1
                     ndict[cords[k - 1]].connect_to(ndict[pnt])
+
             acomps.append(ndict)
+            # create index of distances between
             for j in range(i+1, len(merged)):
                 dist = merged[i].distance(merged[j])
                 dists[i][j] = dist
                 dists[j][i] = dist
 
-        print('indexes created')
+        print('indexes created ... ')
         acomps = self._build_network(acomps, merged, dists)
         # todo really?
         for comp in acomps:

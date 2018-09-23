@@ -5,7 +5,7 @@ from . import structs
 
 from .structs import Cell, Node, Edge
 
-from .geom import MepCurve2d, FamilySymbol
+from .geom import MepCurve2d, FamilySymbol, MEPSolidLine
 from .geomType import GeomType
 from .viper import System
 from .render import RenderNodeSystem

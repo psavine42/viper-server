@@ -75,19 +75,17 @@ def nx_to_nodes(system):
     return root_node
 
 
-def sys_to_nx(system):
-
-    G = nx.DiGraph()
-    for _, node in system._node_dict.items():
-        for n in node.successors():
+def sys_to_nx(system, G=None, **kwargs):
+    G = G if G else nx.DiGraph()
+    for node in system:
+        for n in node.neighbors():
             G.add_edge(node.geom, n.geom)
-
     return G
 
 
-def nodes_to_nx(root, fwd=True, bkwd=False):
+def nodes_to_nx(root, fwd=True, bkwd=False, G=None):
 
-    G = nx.DiGraph()
+    G = G if G else nx.DiGraph()
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         G.add_node(node.geom, **{**node.data, **node.tmps})
 
@@ -99,3 +97,9 @@ def nodes_to_nx(root, fwd=True, bkwd=False):
     return G
 
 
+def bunch_to_nx(nodes_list, **kwargs):
+    G = nx.DiGraph()
+    for n in nodes_list:
+        G = sys_to_nx(n, G=G, **kwargs)
+
+    return G

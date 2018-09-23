@@ -21,6 +21,8 @@ class GeomType(Enum):
     SYMBOL = 5
     SOLID = 6
     FACE = 7
+    MESH = 8
+
 
 class SystemType(Enum):
     FireProtection = 0
