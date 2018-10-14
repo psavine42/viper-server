@@ -3,10 +3,13 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$/../PyTorchSeqLabel" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../construction-crawl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../ifctograph" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../sentiment-discovery" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/client/meshcat" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/lib/lsi" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/lib/meshcat" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/pythonocc-utils" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/pythonocc_utils" vcs="Git" />
   </component>
 </project>

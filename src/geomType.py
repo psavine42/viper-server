@@ -22,6 +22,7 @@ class GeomType(Enum):
     SOLID = 6
     FACE = 7
     MESH = 8
+    POINT = 9
 
 
 class SystemType(Enum):

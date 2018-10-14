@@ -1,7 +1,7 @@
 
 from copy import deepcopy
 from shapely.geometry import Point
-
+import numpy as np
 from .edge import Edge
 from .base import GraphData
 
@@ -9,7 +9,7 @@ from .base import GraphData
 class Node(GraphData):
     __slots__ = ['_pred', '_sucs', '_geom', '_cond', '_done']
     def __init__(self, geom, **kwargs):
-        super(Node, self).__init__(**kwargs)
+        GraphData.__init__(self, **kwargs)
         self._geom = geom
         self._pred = []
         self._sucs = []
@@ -32,6 +32,14 @@ class Node(GraphData):
     @property
     def geom(self):
         return self._geom
+
+    @geom.setter
+    def geom(self, value):
+        self._geom = value
+
+    @property
+    def as_np(self):
+        return np.asarray(list(self.geom))
 
     @property
     def as_point(self):
@@ -57,9 +65,11 @@ class Node(GraphData):
 
     # mutation -------------------------------------------
     def update_geom(self, val):
+        """ corresponds to moving the skeleton node """
         self._geom = val
 
     def remove_edge(self, edge):
+        """ remove edge """
         if edge in self._sucs:
             self._sucs.remove(edge)
         if edge in self._pred:
@@ -71,9 +81,9 @@ class Node(GraphData):
     def add_in_edge(self, edge):
         self._pred.append(edge)
 
-    def connect_to(source, target, **edge_data):
+    def connect_to(source, target, edge_cls=Edge, **edge_data):
         if source.id != target.id and target not in source.neighbors():
-            edge = Edge(source, target, **edge_data)
+            edge = edge_cls(source, target, **edge_data)
             return edge
 
     def edge_to(self, other):
@@ -175,17 +185,33 @@ class Node(GraphData):
         return item_fn
 
 
-class GeomNode(Node):
-    def __init__(self, geom, **kwargs):
-        super(GeomNode, self).__init__(geom, **kwargs)
+class Geom(object):
+    def __init__(self, obj=None, **kwargs):
+        super(Geom, self).__init__()
+        self._obj = obj
 
-    def __eq__(self, other):
-        return self.geom.__eq__(other.geom)
+    @property
+    def obj(self):
+        return self._obj
+
+    @obj.setter
+    def obj(self, v):
+        self._obj = v
+
+    @property
+    def has_geom(self):
+        return self._obj is not None
 
 
+class GeomEdge(Edge, Geom):
+    def __init__(self, source, target, obj=None, **kwargs):
+        Edge.__init__(self, source, target, **kwargs)
+        Geom.__init__(self, obj)
 
 
-
-
+class GeomNode(Node, Geom):
+    def __init__(self, geom, obj=None, **kwargs):
+        Node.__init__(self, geom,  **kwargs)
+        Geom.__init__(self, obj)
 
 

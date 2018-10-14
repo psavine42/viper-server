@@ -8,11 +8,12 @@ def alert_propagators(to_do):
 
 
 def wrap_value(value):
+    # print(value, type(value))
     if type(value) in [int, float, bool]:
         return Constant(value)
     elif isinstance(value, str):
         return Var(value)
-    elif isinstance(value, ndarray):
+    elif type(value).__module__ == 'numpy':
         return NP(value)
     else:
         return value

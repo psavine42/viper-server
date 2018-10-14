@@ -8,7 +8,7 @@ class Edge(GraphData):
     __slots__ = ['_src', '_tgt']
 
     def __init__(self, source, target, **kwargs):
-        super(Edge, self).__init__(**kwargs)
+        GraphData.__init__(self, **kwargs)
         self._src = source
         self._tgt = target
         target.add_in_edge(self)
@@ -48,10 +48,7 @@ class Edge(GraphData):
         :param kwargs:
         :return:
         """
-        #if isinstance(new_geom, Node):
         newnode = new_geom
-        #else:
-        #    newnode = Node(new_geom, **kwargs)
         prev_target = self._tgt
         prev_target.remove_edge(self)
 
@@ -108,6 +105,70 @@ class Edge(GraphData):
         st = '<Edge>:{}, {}'.format(self.geom, self.tmps)
         return st
 
-    def __iter__(self):
-        yield self._src
-        yield self._tgt
+    def __iter__(self, fwd=True, bkwd=False, edges=False):
+        if bkwd is True:
+            if edges is True:
+                for e in self._src.neighbors(edges=True, bkwd=True, fwd=False):
+                    yield e
+            else:
+                yield self._src
+        if fwd is True:
+            if edges is True:
+                for e in self._tgt.neighbors(edges=True, bkwd=False, fwd=True):
+                    yield e
+            else:
+                yield self._tgt
+
+
+
+
+
+# class SuperEdge(EdgeSolid):
+#     """
+#     Edge that can take additional input output
+#
+#     Attrs:
+#     ----------
+#         - internal:
+#         Internal Graph to be accessed by __iter__
+#
+#
+#     """
+#     def __init__(self, source, target,  **kwargs):
+#         EdgeSolid.__init__(self, source, target, **kwargs)
+#         self._inner_succ = []
+#         self._inner_pred = []
+#
+#     def add_predecessor(self, node):
+#         self._inner_pred.append(node)
+#
+#     def add_successor(self, node):
+#         self._inner_succ.append(node)
+#
+#     def __inner_iter(self, inners):
+#         for n in inners:
+#             yield n
+#
+#     def __iter__(self, fwd=True, bkwd=False, edges=False):
+#         if edges is False:
+#             if bkwd is True:
+#                 yield self._src
+#                 for n in self._inner_pred:
+#                     yield n
+#             if fwd is True:
+#                 yield self._tgt
+#                 for n in self._inner_succ:
+#                     yield n
+#         elif edges is True:
+#             if bkwd is True:
+#                 for n in self._inner_pred:
+#                     for e in n.neighbors(edges=True, bkwd=True, fwd=False):
+#                         yield e
+#             if fwd is True:
+#                 for n in self._inner_succ:
+#                     for e in n.neighbors(edges=True, bkwd=False, fwd=True):
+#                         yield e
+
+
+
+

@@ -49,8 +49,8 @@ class Propagator(object):
         if isinstance(other, self.__class__):
             fn_eq = self._fn == other._fn
             out_eq = self._output == other._output
-            #tr = True
-            #for inp in self._inputs:
+            # tr = True
+            # for inp in self._inputs:
             #    inp in other._inputs
             return fn_eq and out_eq  # and
         return False

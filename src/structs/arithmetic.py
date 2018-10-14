@@ -169,7 +169,7 @@ class AInterval(object):
     def __mul__(self, b):
         """ Return a new interval scaled by *scale*. """
         return self.__class__(*(self.inf * b.inf,
-                               self.sup * b.sup))
+                                self.sup * b.sup))
 
     def __contains__(self, x):
         """ Test if *x* is in the interval? """
@@ -360,6 +360,14 @@ class Interval(AInterval, Propagatable):
         a1, a2 = self._intersection(self, other)
         self.inf = a1
         self.sup = a2
+
+    @property
+    def low(self):
+        return self.inf
+
+    @property
+    def high(self):
+        return self.sup
 
     @property
     def value(self):

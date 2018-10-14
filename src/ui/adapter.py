@@ -1,5 +1,6 @@
 import numpy as np
 from src.geom import MepCurve2d, angle_to
+from lib.meshcat.src import meshcat
 from lib.meshcat.src.meshcat import geometry, Visualizer
 from lib.meshcat.src.meshcat import transformations as T
 
@@ -33,7 +34,7 @@ class ViewEdge(Visualized):
     @staticmethod
     def transform(curve):
         origin, p2 = curve.points_np()
-        mag = origin+ (p2 - origin) / 2
+        mag = origin + (p2 - origin) / 2
         xform1 = T.translation_matrix(mag)
         angle = angle_to(_base, curve)
 

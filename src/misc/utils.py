@@ -1,8 +1,23 @@
 import networkx as nx
 from src.structs import Node
-
+from rtree import index
 
 __ROUND = 4
+
+
+def make_index():
+    p = index.Property()
+    p.dimension = 3
+    p.dat_extension = 'data'
+    p.idx_extension = 'index'
+    p.storage = index.RT_Memory
+    p.overwrite = True
+    idx3 = index.Index(properties=p)
+    return idx3
+
+
+def compose2(f, g):
+    return lambda *a, **kw: f(g(*a, **kw))
 
 
 def round_tup(pts, r=__ROUND):

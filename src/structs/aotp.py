@@ -4,10 +4,13 @@ import operator
 import numpy as np
 import itertools
 import math
-from .arithmetic import Angle
+from .arithmetic import Angle, Interval, NP, Constant
 
-def make_cell():
-    return Cell()
+
+def make_cells(n=None):
+    if n is None:
+        return Cell()
+    return [Cell() for _ in range(n)]
 
 
 def constant(value):
@@ -115,6 +118,7 @@ def conditional(predicate, if_true, fn, out=None, false=None, **kwargs):
 
 
 # base operators ---------------------------------
+
 adder = fn_propagator_constructor(operator.add)
 subtracter = fn_propagator_constructor(operator.sub)
 divider = fn_propagator_constructor(operator.truediv)
@@ -123,6 +127,30 @@ equaler = fn_propagator_constructor(operator.eq)
 ander = fn_propagator_constructor(operator.and_)
 orrer = fn_propagator_constructor(operator.or_)
 noter = fn_propagator_constructor(operator.not_)
+
+
+# interval operators -------------------------------
+"""
+(define (intersect-intervals x y)
+(make-interval
+    (max (interval-low x) (interval-low y))
+    (min (interval-high x) (interval-high y))
+
+(define (mul-interval x y)
+    (make-interval 
+        (* (interval-low x) (interval-low y))
+        (* (interval-high x) (interval-high y))))
+"""
+def _intersect_intervals(x, y):
+    return Interval(max([x.low, y.low]), max([x.high, y.high]))
+
+
+def mul_intervals_(x, y):
+    return Interval(max([x.low, y.low]), max([x.high, y.high]))
+
+
+mul_intervals = multiplier
+intersect_intervals = fn_propagator_constructor(_intersect_intervals)
 
 
 #  ---------------------------------
@@ -141,14 +169,13 @@ def _rotate(x, angle):
     """
 
     :param x:
-    :param y:
+    :param angle:
     :return:
     """
     from lib.meshcat.src.meshcat import transformations
     _d = np.array([0, 0, 1])
     _t = transformations.rotation_matrix(angle.val, _d)
-    return np.dot(_t[:3, :3] , x)
-
+    return np.dot(_t[:3, :3], x)
 
 
 angler = fn_propagator_constructor(_angle)
@@ -156,13 +183,35 @@ rotater = fn_propagator_constructor(_rotate)
 inverser = fn_propagator_constructor(lambda angl: ~angl)
 
 
+
+
+
+vectorizer = fn_propagator_constructor(lambda *x: NP(np.array(list(x))))
+indexer = fn_propagator_constructor(lambda x, i: x[i])
+
+
+def to_vec_np(x, y, z, vec):
+    """
+
+    :param x: Cell
+    :param y: Cell
+    :param z: Cell
+    :param vec: Cell
+    :return:
+    """
+    vectorizer(x, y, z, vec)
+    for i, cell in enumerate([x, y, z]):
+        indexer(vec, Cell(Constant(i)), cell)
+
+
+
 def p_angle(x, y, angle):
     """
     angle relationship between two directions
 
-    :param x: Cell with zero-norm np.array direction
-    :param y: Cell with zero-norm np.array direction
-    :param z: Cell for angle between x, y
+    :param x: Cell::NP   zero-norm np.array direction
+    :param y: Cell::NP   zero-norm np.array direction
+    :param z: Cell::Angle  angle between x, y
     """
     angler(x, y, angle)     # angle x, y -> ang
     rotater(x, angle, y)    # rotate vec x by angle z -> y
@@ -180,10 +229,19 @@ def pnotnone(x):
     else:
         return True
 
+
 def pall(*args):
     return all(list(args))
 
+
 def pproduct(x, y, total):
+    """
+
+    :param x: Cell
+    :param y: Cell
+    :param total: Cell
+    :return:
+    """
     multiplier(x, y, total)
     divider(total, y, x)
     divider(total, x, y)

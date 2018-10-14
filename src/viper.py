@@ -5,15 +5,19 @@ from .misc import visualize
 from .geomType import GeomType
 from .geom import to_Nd
 
+import tqdm, time
 import numpy as np
 import src.propogate as gp
+import src.misc.utils as utils
 from src.misc.utils import *
 
 from shapely.geometry import Point
 from shapely.ops import linemerge, nearest_points
+import src.geom
+from src.geom import MEPSolidLine, MeshSolid
 from typing import List
+import trimesh
 import torch
-from src.geom import MEPSolidLine
 from scipy import spatial
 
 
@@ -30,29 +34,29 @@ class SolidSystem(object):
         self._face_centers = None
         self._index_starts = []
         self._index_layers = []
-        self._tree = None
+        self._kdtree = None
+        self._pttree = None
+        self.adj = ddict(set)
+        self.facets = ddict(set)
         if solids:
-            self.res = self._build2(solids)
+            self._build2(solids)
 
-    def _prebuld_indexes(self, solids: List[MEPSolidLine], mode='np') -> None:
-        # _face_centers = []
-        self._index_starts = [0]  # faces[0] starts at index 0
+    def _prebuld_indexes(self, solids, mode='np'):
         _num_solids = len(solids)
+        self._index_starts = [0]  # faces[0] starts at index 0
 
         for s in solids:
+            # s.process()
             self._index_starts.append(self._index_starts[-1] + len(s.children))
             self._index_layers.append(s.layer)
             self._solid_centers.append(s.centroid)
-        if mode == 'np':
-            self._index_layers = np.asarray(self._index_layers)
-            self._solid_centers = np.asarray(self._solid_centers)
-            self._tree = spatial.KDTree(self._solid_centers)
-            # self._face_centers = np.asarray(_face_centers)
-        else:
-            self._solid_centers = torch.Tensor(self._solid_centers)
-            # self._face_centers = torch.Tensor(_face_centers)
+
+        self._index_layers = np.asarray(self._index_layers)
+        self._solid_centers = np.asarray(self._solid_centers)
+        self._kdtree = spatial.KDTree(self._solid_centers)
         print('layers :{} \ncentroids: {} \nstarts: {} '.format(
             len(self._index_layers), len(self._solid_centers), len(self._index_starts)))
+        return solids
 
     def _build(self, solids: List[MEPSolidLine]):
         """
@@ -94,7 +98,64 @@ class SolidSystem(object):
                     re_near = nearest_ix + n_of_this if nearest_ix > j else nearest_ix
                     best_indx_solid = [j, re_near]
             results.append(best_indx_solid)
+        self.res = results
         return results
+
+    def _build3(self, solids, n=7):
+        self.res = ddict(set)
+        self._prebuld_indexes(solids)
+        print(n)
+        for _layer in set(self._index_layers):
+
+            ixs_on_layer = np.where(self._index_layers == _layer)[0]
+            if len(ixs_on_layer) < n:
+                continue
+
+            layer_tree = spatial.KDTree(self._solid_centers[ixs_on_layer])
+            meshes = [solids[i] for i in ixs_on_layer.tolist()]
+
+            for i, solid in enumerate(meshes):
+
+                this_gix = ixs_on_layer[i]
+                this_xyz = self._solid_centers[this_gix]
+                dist_mat, ixs = layer_tree.query([this_xyz], k=n)
+
+                for ix in ixs[0].tolist():
+                    other_gix = ixs_on_layer[ix]
+                    if this_gix in self.res[other_gix] or ix == i:
+                        continue
+                    other = spatial.distance.cdist(solid.points, meshes[ix].points)
+                    ixr, mins = np.where(other < 0.1)
+                    if len(ixr) > 1:
+                        self.res[other_gix].add(this_gix)
+                        self.res[this_gix].add(other_gix)
+        return self.res
+
+    def _build_no_layer(self, solids, n=7):
+        self.res = ddict(set)
+        meshes = [self.prebox(x) for x in solids]
+        _tree = spatial.KDTree([m.centroid for m in meshes if m])
+        _treep = spatial.KDTree(np.concatenate([m.vertices for m in meshes if m]))
+
+        for this_gix, solid in tqdm.tqdm(enumerate(meshes)):
+            if solid is None:
+                continue
+
+            this_xyz = solid.centroid
+            dist_mat, ixs = _tree.query([this_xyz], k=n)
+
+            for other_gix in ixs[0].tolist():
+
+                if this_gix in self.res[other_gix] \
+                        or other_gix == this_gix \
+                        or meshes[other_gix] is None:
+                    continue
+                other = spatial.distance.cdist(solid.points, meshes[other_gix].points)
+                ixr, mins = np.where(other < 0.1)
+                if len(ixr) > 1:
+                    self.res[other_gix].add(this_gix)
+                    self.res[this_gix].add(other_gix)
+        return meshes
 
     def _build2(self, solids: List[MEPSolidLine]):
         """
@@ -116,32 +177,220 @@ class SolidSystem(object):
 
             ndict = {}
             todo_local = list(range(len(ixs_on_layer)))
-            # lyr_centrs = self._solid_centers[ixs_on_layer]
-
             for i in todo_local:
                 this_gix = ixs_on_layer[i]
                 this_xyz = self._solid_centers[this_gix]
                 this_cord = tuple(this_xyz.tolist())
-                # dist_mat = spatial.distance.cdist(lyr_centrs, [this_xyz]).flatten()
-                # othr_lix = np.argpartition(dist_mat, 2, axis=-1)[1]
-                # othr_gix = ixs_on_layer[othr_lix]
 
-                # othr_cord = tuple(self._solid_centers[othr_gix].tolist())
                 ndict[this_cord] = Node(this_cord, item=solids[this_gix])
 
-                dist_mat, ixs = self._tree.query([this_xyz], k=3)
-                # print(ixs)
+                dist_mat, ixs = self._kdtree.query([this_xyz], k=3)
 
                 for othr_gix in ixs[0].tolist()[1:]:
-                    othr_cord = tuple(self._solid_centers[othr_gix ].tolist())
+                    othr_cord = tuple(self._solid_centers[othr_gix].tolist())
                     if othr_cord not in ndict:
                         ndict[othr_cord] = Node(othr_cord, item=solids[othr_gix])
                     ndict[this_cord].connect_to(ndict[othr_cord])
 
-                # ndict[this_cord] = Node(this_cord, item=solids[this_gix])
-
             results.append(ndict)
+
+        self.res = results
         return results
+
+    @classmethod
+    def should_preprocess(cls, solid):
+        return solid.is_watertight is False
+
+    @classmethod
+    def prebox(cls, solids):
+        for s in solids:
+            if cls.should_preprocess(s) is True:
+                bx = s.as_box()
+                if bx is not None:
+                    yield bx
+
+    @staticmethod
+    def is_irregular(box_mesh, tolerance):
+        mn = np.min(box_mesh.edges_unique_length)
+        mx = np.max(box_mesh.edges_unique_length)
+        irreg = mx / mn < tolerance
+
+        return irreg
+
+    @staticmethod
+    def score(scores):
+        ixs = []
+        cnt = 0
+        while np.any(scores) and cnt < 2:
+            sc0 = np.argmin(scores[:, 1])
+            sc1 = np.argmin(scores[:, 2])
+            sc2 = np.argmin(scores[:, 3])
+            rank = [sc0, sc1, sc2]
+            ix = Counter(rank).most_common()[0][0]
+            ixs.append(int(scores[ix][0]))
+            scores = np.delete(scores, ix, 0)
+            cnt += 1
+        return ixs
+
+    def intial_filter(self, solids, irreg_tol=8.0):
+        return list(
+            filter(lambda x: self.is_irregular(x, irreg_tol),
+                    self.prebox(solids))
+            )
+
+    @staticmethod
+    def nearest_facets__x(this, others):
+        """
+        nearest facets using all points of this_box and other_box facets
+
+        :param this:
+        :param others:
+        :return:
+        """
+        arm = []
+        for other in others:
+
+            # [ n_verts(8), n_verts(8) ]
+            vdist = spatial.distance.cdist(this.vertices, other.vertices)
+
+            # [ n_facet(6), n_point(4) ]
+            face_ix = np.asarray([np.unique(x) for x in this.faces[this.facets].reshape(6, -1)])
+
+            # [ n_facet(6), n_point(4), dists(8) ]
+            vtof = vdist[face_ix]
+
+            # [ total_dists(6), ]  <- [ n_facet(6), dists(4) ]
+            mins = np.sum(np.min(vtof, axis=-1), axis=-1)
+            arm.append(int(np.argmin(mins)))
+        return arm
+
+    @staticmethod
+    def nearest_facets(this, others):
+        """
+        nearest facets using all points of this_box and other_box facets
+
+        :param this:
+        :param others:
+        :return:
+        """
+        arm = []
+        for other in others:
+            r, dists, tid = trimesh.proximity.closest_point(other, this.facets_centroids)
+            armi = np.unravel_index(np.argmin(dists, axis=None), dists.shape)
+            arm.append(armi[0])
+        return arm
+
+    @staticmethod
+    def nearest_facets_o(this, others):
+        """ neareste facets using centroids - """
+        arm = []
+        for other in others:
+            dists = spatial.distance.cdist(this.facets_centroids, other.facets_centroids)
+            armi = np.unravel_index(np.argmin(dists, axis=None), dists.shape)
+            arm.append(armi[0])
+        return arm
+
+    def predict_neighs(self, ix, this_box, k):
+        Nvert = 8
+        start_ix = ix * Nvert
+        ixs_this_np = np.arange(start_ix, start_ix + len(this_box.vertices))
+
+        # [ nvert, n_topk ]
+        dists, ixs = self._kdtree.query(this_box.vertices, k=k * Nvert)
+        mask = np.asarray([[True if j not in ixs_this_np else False for j in i] for i in ixs])
+
+        ixs_other = ixs // Nvert
+        best_count = Counter()
+
+        # [ num_facets, n_points ] x 2
+        best_dists, best_index = np.zeros((6, 4)), np.zeros((6, 4))
+
+        for fct_ix, facet in enumerate(this_box.facets):
+            facet_vert_ix = np.unique(this_box.faces[facet])
+            smask = mask[facet_vert_ix]
+            vixs_other = ixs_other[facet_vert_ix]
+
+            dist_other = dists[facet_vert_ix]
+            best_dists[fct_ix] = np.array([dist_other[i, smask[i, :]][0] for i in range(4)])
+            best_index[fct_ix] = np.array([vixs_other[i, smask[i, :]][0] for i in range(4)])
+            best_count += Counter(vixs_other[smask])
+
+        scores, keys = [], []
+        candidates = np.unique(best_index)
+        mx = best_count.most_common()[0][-1]
+
+        for ii, (k, v) in enumerate(best_count.most_common()):
+            if k in candidates:
+                keys.append(k)
+                cc = best_dists[np.where(best_index == k)]
+                score = [k, (1. - v / mx), cc.mean(), cc.min()]
+                scores.append(score)
+
+        return self.score(np.asarray(scores))
+
+    def build_no_layer2(self, solids, num_neigh=2, irreg_tol=8.0):
+        c0 = time.time()
+        print('filtering: ', len(solids))
+        boxes = self.intial_filter(solids, irreg_tol)
+        c1 = time.time()
+        print('filtered: ', len(boxes), c1 - c0)
+
+        # make a tree
+        self._kdtree = spatial.KDTree(np.concatenate([m.vertices for m in boxes if m]))
+        print('tree built ... ', time.time() - c1)
+
+        for i, solid in tqdm.tqdm(enumerate(boxes)):
+            indices = self.predict_neighs(i, solid,  num_neigh)
+
+            # update adjacency
+            self.adj[i].update(indices)
+            for ix in indices:
+                self.adj[ix].add(i)
+
+            # compute nearest facets
+            self.facets[i].update(self.nearest_facets_o(
+                solid, [boxes[x] for x in indices])
+             )
+
+        return boxes
+
+
+def dist_point_to_facets(pt, imesh_obb):
+    vert_face = imesh_obb.vertices[imesh_obb.faces[imesh_obb.facets]]
+    fct_cntrs = vert_face.reshape(imesh_obb.facets.shape[0], -1, 3).mean(axis=1)
+    closet_ix = np.argmin(spatial.distance.cdist([pt], fct_cntrs).squeeze())
+    return closet_ix, fct_cntrs[closet_ix]
+
+
+class SolidSystemLF(SolidSystem):
+    def __init__(self, **kwargs):
+        SolidSystem.__init__(self, **kwargs)
+        self._rtree = utils.make_index()
+        self._input = dict()
+        self.adj = ddict(set)
+
+    def build_no_layer2(self, compounds, num_neigh=2, irreg_tol=8.0):
+        """
+        :param compounds: list of compound objects
+        :param num_neigh:
+        :param irreg_tol:
+        :return:
+        """
+
+        # self._input[cmp.id] = cmp
+        for i, cmp in enumerate(compounds):
+            mesh_data = next(cmp.children_of_type(GeomType['MESH']))
+            self._rtree.insert(i, src.geom.to_bbox(mesh_data), obj=i)
+
+        for i, cmp in enumerate(compounds):
+            obj = next(cmp.children_of_type(GeomType['MESH']))
+            bbx = src.geom.to_bbox(obj)
+
+            for other in self._rtree.intersection(bbx, objects=True):
+                self.adj[i].add(other.object)
+                self.adj[other.object].add(i)
+        return compounds
+
 
 
 class System(object):
@@ -240,6 +489,7 @@ class System(object):
             in_othr = po in othr_comp
 
             if in_this and in_othr:
+                # point exists in both components
                 this_comp[pi].connect_to(othr_comp[po])
 
             elif in_this and not in_othr:
