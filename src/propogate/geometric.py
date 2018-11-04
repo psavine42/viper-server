@@ -20,11 +20,11 @@ class EdgeRouter(BasePropogator):
     def next_fn(self, node):
         return [x for x in node.neighbors() if x.id not in self.seen]
 
-    def on_default(self, node, mls, **kwargs):
+    def on_default(self, node, _, fuzz=0.0, bkwd=False, **kwargs):
 
         if node.id not in self.seen:
             self.seen.add(node.id)
-            edges = node.neighbors(edges=True)
+            edges = node.neighbors(bkwd=bkwd, edges=True)
             to_del = []
 
             for i in range(len(edges)):
@@ -49,7 +49,6 @@ class EdgeRouter(BasePropogator):
                         to_del.append(rem)
                         next_end = rem.other_end(node)
                         other_end = keep.other_end(node)
-
                         other_end.connect_to(next_end)
                         self.seen.difference_update([other_end.id, next_end.id])
 
@@ -58,7 +57,7 @@ class EdgeRouter(BasePropogator):
                 for edge in to_del:
                     node.remove_edge(edge)
 
-        return node, mls
+        return node, _
 
 
 class PropMerge(BasePropogator):
@@ -137,3 +136,16 @@ class Cluster(RecProporgator):
         return node, dat
 
 
+class DirCluster(RecProporgator):
+    def on_default(self, node, _, dtol=1., bkwd=True, **kwargs):
+        s = []
+        q = [node]
+        while q:
+            el = q.pop(0)
+            s.append(el)
+            for n in el.neighbors(bkwd=bkwd):
+                if n.as_point.distance(el.as_point) < dtol:
+                    q.append(n)
+        if len(s) == 3:
+            node = geom_merge(*s)
+        return node, _

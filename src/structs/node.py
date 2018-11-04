@@ -8,6 +8,7 @@ from .base import GraphData
 
 class Node(GraphData):
     __slots__ = ['_pred', '_sucs', '_geom', '_cond', '_done']
+
     def __init__(self, geom, **kwargs):
         GraphData.__init__(self, **kwargs)
         self._geom = geom
@@ -98,7 +99,9 @@ class Node(GraphData):
             return super(Node, self).get(v, d)
 
     def deref(self):
-        """ remove all references to this node """
+        """ remove all references to this node
+            todo - both directions
+        """
         for edge in self.successors(edges=True):
             other = edge.other_end(self)
             other.remove_edge(edge)
@@ -120,7 +123,6 @@ class Node(GraphData):
         return False
 
     def __contains__(self, item):
-
         return self.__getitem__(item) is not None
 
     def __getitem__(self, item, **kwargs):

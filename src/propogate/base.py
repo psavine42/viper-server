@@ -36,7 +36,6 @@ class BasePropogator(object):
             return node.predecessors()
 
     def __call__(self, node, data=None, first=True, **kwargs):
-
         if self.is_terminal(node, data, **kwargs) is True:
             self.on_terminal(node, data, **kwargs)
             return None
@@ -51,6 +50,16 @@ class BasePropogator(object):
     def __str__(self):
         st = '<{}>'.format(self.__class__.__name__)
         return st
+
+
+class UndirectedProp(BasePropogator):
+    def __init__(self, name=None,  **kwargs):
+        name = name if name else self.__class__.__name__
+        super(UndirectedProp, self).__init__(name,  **kwargs)
+        self.seen = set()
+
+    def next_fn(self, node):
+        return node.neighbors(fwd=True, bkwd=True)
 
 
 class RecProporgator(BasePropogator):
@@ -96,6 +105,109 @@ class EdgePropogator(BasePropogator):
                 super(EdgePropogator, self).__call__(edge, data, first=True, **kwargs)
         else:
             super(EdgePropogator, self).__call__(node, data, first=True, **kwargs)
+
+
+def unique_edge_neighs(node_or_edge, fwd=True, bkwd=True):
+    if isinstance(node_or_edge, Node):
+        return node_or_edge.neighbors(fwd=fwd, bkwd=bkwd, edges=True)
+    else:
+        alls = node_or_edge.source.neighbors(fwd=fwd, bkwd=bkwd, edges=True) \
+               + node_or_edge.target.neighbors(fwd=fwd, bkwd=bkwd, edges=True)
+        seen = {node_or_edge.id}
+        res = []
+        for e in alls:
+            if e.id not in seen:
+                seen.add(e.id)
+                res.append(e)
+    return res
+
+
+class UndirectedEdgeProp(BasePropogator):
+    def __init__(self, name=None, **kwargs):
+        name = name if name else self.__class__.__name__
+        super(UndirectedEdgeProp, self).__init__(name, **kwargs)
+        self.seen = set()
+
+    def next_fn(self, edge):
+        return unique_edge_neighs(edge)
+
+
+class QueuePropogator(object):
+    def __init__(self,  fwd=True, bkwd=False, edges=False, **kwargs):
+        self.fwd = fwd
+        self.bkwd = bkwd
+        self.edges = edges
+        self.seen = set()
+        self._res = []
+
+    @property
+    def result(self):
+        return self._res
+
+    def on_first(self, node, **kwargs):
+        if not isinstance(node, list):
+            return [node]
+        return node
+
+    def on_terminal(self, node, **kwargs):
+        return self.on_default(node, **kwargs)
+
+    def on_default(self, node, **kwargs):
+        print(node)
+        return node
+
+    def is_terminal(self, node, **kwargs):
+        return False
+
+    def on_record(self, node):
+        self.seen.add(node.id)
+
+    def on_complete(self, node):
+        return node
+
+    def on_next(self, node_or_edge):
+        res = []
+        if self.fwd is True:
+            if self.edges is True:
+                res += node_or_edge.target.successors(edges=True)
+            else:
+                res += node_or_edge.successors()
+        if self.bkwd is True:
+            if self.edges is True:
+                res += node_or_edge.source.predecessors(edges=True)
+            else:
+                res += node_or_edge.predecessors()
+
+        return res
+
+    def __call__(self, node, num_iter=None, debug=False, **kwargs):
+        # print(node)
+        q = self.on_first(node, **kwargs)
+        cntr = 0
+        # print(q)
+        while q:
+
+            el = q.pop(0)
+            # print(el.id)
+            if el.id in self.seen:
+                continue
+
+            self.on_record(el)
+            if self.is_terminal(el, **kwargs) is True:
+                self.on_terminal(el, **kwargs)
+                return el
+            else:
+                el = self.on_default(el,  **kwargs)
+
+            for next_el in self.on_next(el):
+                q.append(next_el)
+
+            cntr += 1
+            if num_iter is not None and cntr > num_iter:
+                break
+        print(self.__class__.__name__, 'seen nodes : ', cntr)
+        return self.on_complete(node)
+
 
 
 class Propogator(BasePropogator):

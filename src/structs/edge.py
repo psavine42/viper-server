@@ -75,6 +75,10 @@ class Edge(GraphData):
         pass
 
     def reverse(self):
+        """ src -> tgt
+        Return
+        src <- tgt
+        """
         target = self._tgt
         source = self._src
         target.remove_edge(self)

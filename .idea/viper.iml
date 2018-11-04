@@ -6,5 +6,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="sentiment-discovery" />
     <orderEntry type="module" module-name="ifctograph" />
+    <orderEntry type="module" module-name="tbc_crawls" />
   </component>
 </module>

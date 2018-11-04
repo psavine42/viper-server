@@ -138,6 +138,7 @@ class FuncPropogator(BasePropogator):
 
 # ---------------------------------------------------------------
 class EdgeDirector(BasePropogator):
+    """ Creates direction for each edge"""
     def __init__(self,  **kwargs):
         super(EdgeDirector, self).__init__(name=None, **kwargs)
         self.seen = set()

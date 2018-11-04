@@ -26,6 +26,12 @@ class SystemRequest(object):
         st = ''
 
 
+
+class RevitRecipe(object):
+    def __init__(self):
+        self.geom = []
+
+
 class SystemProcessorV3(object):
     def __init__(self):
         self._shrink = -0.05
@@ -99,6 +105,8 @@ class SystemProcessorV3(object):
 
         :param root: node
         :return:
+            ENDPOINTS OF PIPES
+            these are build first
             geom = [
                 [x1, y1, z1, x2, y2, z2]
 
@@ -106,6 +114,8 @@ class SystemProcessorV3(object):
                 [10, 0, 0,   5, 0, 0]  # [1, [0 , 1]]
                 [5,  0, 0,   5, 5, 0]  # [2, [0 , 1]]
             ]
+
+            INDICES OF CONNECTORS TO CONNECT
             inds = [
                 [ [ mepcurve_index, end_index ] x number of points to connect]
 

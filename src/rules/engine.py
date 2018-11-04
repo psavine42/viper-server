@@ -135,7 +135,6 @@ class RuleEngine(object):
             for p in self._post_conds[rule.id]:
                 yield self._rules[p]
 
-
     def annotate_type(self, root, labels):
         meta = {}
         for n in labels:

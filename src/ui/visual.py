@@ -6,6 +6,7 @@ import src.geom as geom
 
 _zmq_url = 'tcp://127.0.0.1:6000'
 VIZ = Visualizer(_zmq_url)
+_default_material = meshcat.geometry.MeshPhongMaterial
 
 
 # ---------------------------------------------------
@@ -13,7 +14,7 @@ def as_path(*args):
     return '/'.join(map(str, args))
 
 
-def _export_and_set(gm, handle, uid=None, mat=None):
+def _export_and_set(gm, handle, uid=None, mat=None, **kwargs):
     obj = gm.export(file_type='obj')
     mg = meshcat.geometry.ObjMeshGeometry(obj)
     if uid is not None:
@@ -21,7 +22,22 @@ def _export_and_set(gm, handle, uid=None, mat=None):
     VIZ[handle].set_object(mg, mat)
 
 
-def viz_line(c1, c2, handle=None, thickness=0.05, opacity=None, mat=None, **kwargs):
+def _with_material(mat=None, opacity=None, **kwargs):
+    if mat is None and opacity is None:
+        return None
+    elif mat is not None:
+        return mat
+    elif opacity is not None:
+        return _default_material(transparent=True, opacity=opacity)
+    else:
+        return _default_material(transparent=False)
+
+
+def _default_handle(handle=None):
+    return handle if handle else str(time.time()).split('.')[0]
+
+
+def viz_line(c1, c2, handle=None, thickness=0.05, **kwargs):
     """
     Create a meshcat line from two points - dirty
     :param c1:
@@ -32,29 +48,31 @@ def viz_line(c1, c2, handle=None, thickness=0.05, opacity=None, mat=None, **kwar
     :return:
     """
     try:
-        _p = np.array([0, 0, thickness])
-        _y = np.array([0, thickness, 0])
-        _x = np.array([thickness, 0, 0])
-        handle = handle if handle else 'None'
+        if type(c1).__module__ != 'numpy':
+            c1 = np.asarray(c1)
+        if type(c2).__module__ != 'numpy':
+            c2 = np.asarray(c2)
+        zr = np.eye(3) * thickness
+        _x, _y, _p = zr[0], zr[1], zr[2]
+        # _x = np.array([thickness, 0, 0])
+        # _y = np.array([0, thickness, 0])
+        # _p = np.array([0, 0, thickness])
         ls = Trimesh(vertices=[c1,      c2,
                                c1 + _p, c2 + _p,
                                c1 - _p, c2 - _p,
                                c1 + _y, c2 + _y,
-                               c1 - _y, c2 - _y],
-                     faces=[[2, 4, 6], [2, 4, 8],
-                            [1, 3, 5], [1, 3, 7]])
-        if opacity is not None:
-             mat = meshcat.geometry.MeshPhongMaterial(transparent=True, opacity=opacity)
-        else:
-             mat = meshcat.geometry.MeshPhongMaterial(transparent=False)
-        _export_and_set(ls.convex_hull, handle, mat=mat)
+                               c1 - _y, c2 - _y,
+                               c1 + _x, c2 + _x,
+                               c1 - _x, c2 - _x])
+        _export_and_set(ls.convex_hull, _default_handle(handle),
+                        mat=_with_material(**kwargs))
     except Exception as e:
         print(repr(e))
 
 
-def viz_point(xyz, handle='points/', radius=0.2):
+def viz_point(xyz, handle='points/', radius=0.2, **kwargs):
     px = primitives.Sphere(radius=radius, center=xyz)
-    _export_and_set(px, handle)
+    _export_and_set(px, handle, mat=_with_material(**kwargs))
 
 
 def viz_point_bx(xyz, handle='points/', radius=0.2):
@@ -62,12 +80,10 @@ def viz_point_bx(xyz, handle='points/', radius=0.2):
     _export_and_set(px, handle)
 
 
-def viz_mesh(x, mat=None, handle=None, opacity=None, transparent=True, **kwargs):
-    uid = str(x.id) if hasattr(x, 'id') else None
-    handle = as_path(handle, x.id) if hasattr(x, 'id') else handle
-    if mat is None and opacity is not None:
-        mat = meshcat.geometry.MeshPhongMaterial(transparent=transparent, opacity=opacity)
-    _export_and_set(x, handle, uid=uid, mat=mat)
+def viz_mesh(x, handle=None, uid=None, **kwargs):
+    uid = str(x.id) if hasattr(x, 'id') else uid
+    handle = as_path(handle, uid)
+    _export_and_set(x, handle, uid=uid, mat=_with_material(**kwargs))
 
 
 def viz_bone(*args, handle=None,  **kwargs):
@@ -80,6 +96,15 @@ def viz_bone(*args, handle=None,  **kwargs):
     viz_line(c1, c2, handle=as_path(handle, 'line'), **kwargs)
     viz_point(c1, handle=as_path(handle, 'points/1'), **kwargs)
     viz_point(c2, handle=as_path(handle, 'points/2'), **kwargs)
+
+
+def viz(arg, **kwargs):
+    from lib.geo import Point, Line
+    if isinstance(arg, Line):
+        viz_line(np.array(list(arg.points[0].coordinates)),
+                 np.array(list(arg.points[1].coordinates)), **kwargs)
+    elif isinstance(arg, Point):
+        viz_point(list(arg.coordinates), **kwargs)
 
 
 # ----------------------------------------------------
@@ -120,29 +145,98 @@ def viz_if(icads, filter_fn, show_fn=viz_mesh, handle=None, **kwargs):
 
 
 # ----------------------------------------------------
-def visualize_indexed(solids, handle=None):
-    handle = handle if handle else str(time.time()).split('.')[0]
-    for x in solids:
-        viz_mesh(x, handle)
-    return handle
+def viz_by_index(items, handle='x', **kwargs):
+    for i, k in enumerate(items):
+        viz(k, handle=as_path(handle, i), **kwargs)
+
+
+def visualize_indexed(solids, index, handle=None):
+    """
+
+    :param solids:
+    :param index: ddict(set) ix from to
+    :param handle:
+    :return:
+    """
+    handle = _default_handle(handle)
+    for i, tgts in index.items():
+        for t in tgts:
+            viz_line(solids[i].centroid, solids[t].centroid,
+                     handle=as_path(handle, i, t))
 
 
 def visualize_points(points, handle=None, radius=0.2):
-    handle = handle if handle else str(time.time()).split('.')[0]
+    handle = _default_handle(handle)
     for x in points:
         viz_point(x, handle + '/' + str(x), radius)
     return handle
 
 
 def visualize_lines(lines, handle=None, thickness=0.25, **kwargs):
-    handle = handle if handle else str(time.time()).split('.')[0]
     for x, y in lines:
-        viz_line(x, y, handle=handle, thickness=thickness)
+        viz_line(x, y, handle=_default_handle(handle), thickness=thickness)
     return handle
 
 
+# testing specific visualization ------------------------------
+def _clear_if(handle, clear=False, **kwargs):
+    if clear is True:
+        VIZ[handle].delete()
 
 
+def viz_ixs(vsys, ixs, handle='tsx', **kwargs):
+    _clear_if(handle, **kwargs)
+    for ix_ in ixs:
+        viz_mesh(vsys.inputs[ix_], handle=handle + '/{}'.format(ix_), **kwargs)
 
 
+def viz_conn_ixs(vs2, ixs, handle='conn', **kwargs):
+    _clear_if(handle, **kwargs)
+    for i in ixs:
+        adj = vs2.inters[i]
+        for j in adj.neigh_to_sphere.keys():
+            if j in ixs:
+                viz_line(vs2.inputs[i].centroid, vs2.inputs[j].centroid,
+                         handle=handle + '/{}/{}'.format(i, j))
+
+
+def viz_nodes(nodes, handle='nodes', **kwargs):
+    _clear_if(handle, **kwargs)
+    seen = set()
+    counter = 0
+    for i, n in enumerate(nodes):
+        for neigh in n.neighbors(fwd=True, bkwd=True, edges=True):
+            this = tuple(sorted(list(neigh.geom)))
+            if this not in seen:
+                seen.add(this)
+                g1, g2 = neigh.geom
+                pipe = str(neigh.get('is_pipe', None))
+                viz_line(g1, g2, handle=as_path(handle, pipe, counter), **kwargs)
+                counter += 1
+
+
+def viz_edges(edges, handle='nodes', **kwargs):
+    _clear_if(handle, **kwargs)
+    seen = set()
+    for i, e in enumerate(edges):
+        if e.id not in seen:
+            seen.add(e.id)
+            g1, g2 = e.geom
+            pipe = str(e.get('is_pipe', None))
+            viz_line(g1, g2, handle=as_path(handle, pipe, e.id), **kwargs)
+
+
+def viz_iter(node, handle='nodes', **kwargs):
+    _clear_if(handle, **kwargs)
+    seen = set()
+    # counter = 0
+    for n in node.__iter__(fwd=True, bkwd=True):
+        for neigh in n.neighbors(fwd=True, bkwd=True, edges=True):
+            # this = tuple(sorted(list(neigh.geom)))
+            if neigh.id not in seen:
+                seen.add(neigh.id)
+                g1, g2 = neigh.geom
+                pipe = str(neigh.get('is_pipe', None))
+                viz_line(g1, g2, handle=as_path(handle, pipe, neigh.id), **kwargs)
+                # counter += 1
 

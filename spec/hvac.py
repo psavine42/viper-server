@@ -8,11 +8,11 @@ from src.geom import MEPFace, MepCurve2d, MEPSolidLine, MeshSolid, GeomType, Cad
 from src.viper import SolidSystem
 from collections import Counter, defaultdict
 from src.misc import utils, visualize
+import src.geom as geom
 import random
 from scipy import spatial
 from trimesh import Scene
-from src.ui.adapter import Visualizer
-from lib.meshcat.src import meshcat
+
 from src.ui import visual
 from src.ui.visual import visualize_indexed
 
@@ -96,46 +96,54 @@ class Test3DGeom(unittest.TestCase):
 
 
 class TestTrain(unittest.TestCase):
+
     def setUp(self):
+        import importlib
+        importlib.reload(geom)
         st = '/home/psavine/source/viper'
-        with open(st + '/data/sample/test3.json', 'r') as f:
+        with open(st + '/data/sample/test5.json', 'r') as f:
             self.train = json.load(f)
             f.close()
 
     def preprocess(self, categories=None):
+        return self.preprocess_(self.train)
+
+    @staticmethod
+    def preprocess_(data, categories=None):
         """
         Create Meshes
         Pickle Meshes
-
-
         """
         res = []
-        for x in self.train:
+        for x in data:
             if len(x['points']) < 3:
                 continue
             if x['geomType'] == 3:
-                # its a line
                 x['base_curve'] = x['points'][:6]
                 x['points'] = x['points'][6:]
 
             elif x['geomType'] == 9:
-                # its a point
                 x['base_curve'] = x['points'][:3]
                 x['points'] = x['points'][3:]
             else:
                 continue
+            dst = {**x['attrs'], **x['attrd'], **x['attri']}
+            x['attrs'] = dst
+            x.pop('attrd')
+            x.pop('attri')
             x['ogeomType'] = x['geomType']
             x['geomType'] = 8
+            x['uid'] = int(x['attrs']['ElementID'])
             x['category'] = x['attrs']['Category']
-
             if categories is None or x['category'] in categories:
-                rs = list(filter(None, CadInterface.factory(**x)))
+                rs = list(filter(None, geom.RevitInterface.factory(**x)))
                 res.extend(rs)
-
         return res
 
-
-
+    def test_preproc(self):
+        res = self.preprocess()
+        for r in res:
+            assert r.id == int(r.meta['attrs']['ElementID'])
 
 
 class TestHvacSys(unittest.TestCase):

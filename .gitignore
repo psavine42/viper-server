@@ -1,5 +1,8 @@
-lib/meshcat
-client/meshcat
-lib/pythonocc_utils
+lib/meshcat/
+client/meshcat/
+lib/pythonocc_utils/
+lib/FreeCAD/
+lib/acis/
+lib/InventorLoader/
 data/
 *__pycache__/

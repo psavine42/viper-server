@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../ifctograph/.idea/ifctograph.iml" filepath="$PROJECT_DIR$/../ifctograph/.idea/ifctograph.iml" />
       <module fileurl="file://$PROJECT_DIR$/../sentiment-discovery/.idea/sentiment-discovery.iml" filepath="$PROJECT_DIR$/../sentiment-discovery/.idea/sentiment-discovery.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../tbc_crawls/.idea/tbc_crawls.iml" filepath="$PROJECT_DIR$/../tbc_crawls/.idea/tbc_crawls.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/viper.iml" filepath="$PROJECT_DIR$/.idea/viper.iml" />
     </modules>
   </component>

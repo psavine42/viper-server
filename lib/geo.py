@@ -9,11 +9,14 @@ Created by uekstrom
 from numpy import *
 import math, numpy.linalg, copy
 import fractions
+import functools
+import numpy as np
 
 # Expose only some parts to "from geo import *"
-__all__ = ["use_degrees","use_radians","Point","Line","Plane","Movement"]
+__all__ = ["use_degrees", "use_radians", "Point", "Line", "Plane", "Movement"]
 
-angular_unit = 1.0 #units/radian
+angular_unit = 1.0  # units/radian
+
 
 def use_degrees():
     """ Use degrees for all geo functions """
@@ -31,7 +34,7 @@ def use_radians():
 # These take numpy arrays as input
 def intersect(line1, line2):
     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1]) #Typo was here
+    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
 
     def det(a, b):
         return a[0] * b[1] - a[1] * b[0]
@@ -47,9 +50,9 @@ def intersect(line1, line2):
     return x, y
 
 
-def dot(x,y):
+def dot(x, y):
     """ Dot product of arrays x and y"""
-    return inner(x,y)
+    return inner(x, y)
 
 
 def abs2(x):
@@ -62,14 +65,14 @@ def normalized(x):
     return x/math.sqrt(abs2(x))
 
 
-def orthogonalized_to(x,d):
+def orthogonalized_to(x, d):
     """Return the component of array x orthogonal to array d != 0"""
-    return x - parallel_to(x,d)
+    return x - parallel_to(x, d)
 
 
-def parallel_to(x,d):
+def parallel_to(x, d):
     """Return the component of x parallel to d"""
-    return dot(x,d)/abs2(d)*d
+    return dot(x, d)/abs2(d)*d
 
 
 def dual(v):
@@ -85,12 +88,12 @@ def dual(v):
         return [array([1,0,0],'d'),array([0,1,0],'d')]
 
 
-def qmul(q1,q2):
+def qmul(q1, q2):
     """Take q1 and q2 to be quaternions, and multiply them accordingly"""
     v1 = q1[1:]
     v2 = q2[1:]
-    x = q1[0]*v2 + q2[0]*v1 + cross(v1,v2)
-    return array([q1[0]*q2[0]-dot(v1,v2),x[0],x[1],x[2]])
+    x = q1[0] * v2 + q2[0]*v1 + cross(v1, v2)
+    return array([q1[0]*q2[0]-dot(v1, v2), x[0], x[1], x[2]])
 
 
 def qconj(q):
@@ -99,18 +102,18 @@ def qconj(q):
     return qc
 
 
-def qrotate(q,v):
+def qrotate(q, v):
     """qrotate(array(4),array(3)) -> array(3)
 
     Apply the rotation specified by quaternion q to vector v
 
         v' = qv(q*)
     """
-    qv = array([0,v[0],v[1],v[2]])
-    return qmul(q,qmul(qv,qconj(q)))[1:]
+    qv = array([0, v[0], v[1], v[2]])
+    return qmul(q, qmul(qv, qconj(q)))[1:]
 
 
-def qrotor(axis,angle):
+def qrotor(axis, angle):
     """qrotor(array(3),float)->array(4)
     get the rotation quaternion for a rotation by angle (in radians) around
     the axis defined by array axis
@@ -118,69 +121,80 @@ def qrotor(axis,angle):
     the rotation quaternion q is given by
       q = cos(angle/2) + ( axis[0]*i + axis[1]*j + axis[2]*k )*sin(angle/2)
     """
-    axis = math.sin(angle/2)*normalized(axis)
+    axis = math.sin(angle/2) * normalized(axis)
     return array([math.cos(angle/2), axis[0], axis[1], axis[2]])
 
+
 # Public classes
-
-
 class Point(object):
     def __init__(self, *x_or_xyz):
         """Create a point from a list of 3 coordinates or 3 individual
         coordinates."""
         if len(x_or_xyz) == 3:
-            self.r = array(x_or_xyz,'d')
+            self.r = array(x_or_xyz, 'd')
         elif len(x_or_xyz) == 1 and len(x_or_xyz[0]) == 3:
-            self.r = array(x_or_xyz[0],'d')
+            self.r = array(x_or_xyz[0], 'd')
         else:
             raise TypeError("Invalid arguments to Point()")
-    def __str__(self):
-        return "(%g, %g, %g)" % tuple(map(float,self.r))
-    def __repr__(self):
-        return "Point(%g, %g, %g)" % tuple(map(float,self.r))
 
+    def __str__(self):
+        return "(%g, %g, %g)" % tuple(map(float, self.r))
+
+    def __repr__(self):
+        return "Point(%g, %g, %g)" % tuple(map(float, self.r))
+
+    @property
+    def numpy(self):
+        return self.r
+
+    @property
+    def direction(self):
+        return self.r
+
+    @property
     def coordinates(self):
-        return map(float,self.r)
+        return map(float, self.r)
 
     def moved(self, m):
         return m.on_point(self)
 
     def projected_on(self, obj):
         if isinstance(obj, Line):
-            return Point(obj.r + dot(obj.t,self.r - obj.r)*obj.t)
+            return Point(obj.r + dot(obj.t, self.r - obj.r)*obj.t)
         elif isinstance(obj, Plane):
             dr = self.r - obj.r
-            return Point(obj.r + orthogonalized_to(dr,obj.n))
+            return Point(obj.r + orthogonalized_to(dr, obj.n))
         else:
             raise TypeError("Cannot project point onto object")
 
     def distance_to(self, obj):
         # Point-Point distance
-        if isinstance(obj,Point):
+        if isinstance(obj, Point):
             return math.sqrt(abs2(self.r - obj.r))
         else:
-            #Point-Line and Point-Plane through projected_on
+            # Point-Line and Point-Plane through projected_on
             p = self.projected_on(obj)
             return self.distance_to(p)
 
-    def midpoint_to(self,obj):
-        """Return a point in the middle of the shortest line connecting this and obj."""
-        if isinstance(obj,Point):
-            return Point(0.5*(self.r + obj.r))
+    def midpoint_to(self, obj):
+        """Return a point in the middle of the shortest
+         line connecting this and obj."""
+        if isinstance(obj, Point):
+            return Point(0.5 * (self.r + obj.r))
         else:
             return obj.midpoint_to(self)
 
 
 def pointset_mass_distribution(points):
-    cm = zeros((1,3))
+    cm = zeros((1, 3))
     for p in points:
         cm += p.r
     cm /= len(points)
-    A = asmatrix(zeros((3,3)))
+    A = asmatrix(zeros((3, 3)))
     for p in points:
         r = asmatrix(p.r - cm)
         A += r.transpose()*r
-    return asarray(cm).reshape(3),A
+    return asarray(cm).reshape(3), A
 
 
 class Line(object):
@@ -206,39 +220,52 @@ class Line(object):
             # assume eigh() returns sorted vectors, take the one with
             # largest eigenvalue
             val, vec = numpy.linalg.eigh(A)
-            self.t = asarray(vec[:,2]).reshape(3)
+            self.t = asarray(vec[:, 2]).reshape(3)
             l = math.sqrt(val[2]/2)
             self.r = r_cm
             self.r2 = r_cm + l*self.t
         else:
             raise ValueError("Too few arguments to Line()")
 
+    @property
+    def direction(self):
+        return self.t
+
+    @property
+    def length(self):
+        return Point(self.r).distance_to(Point(self.r2))
+
+    @property
+    def numpy(self):
+        return np.stack([self.r, self.r2])
+
+    @property
     def points(self):
         """Return two points defining the line"""
-        return [Point(self.r),Point(self.r2)]
+        return [Point(self.r), Point(self.r2)]
 
     def moved(self, m):
-        p = self.points()
-        return Line(m.on_point(p[0]),m.on_point(p[1]))
+        p = self.points
+        return Line(m.on_point(p[0]), m.on_point(p[1]))
 
     def projected_on(self, plane):
-        p = self.points()
+        p = self.points
         return Line(p[0].projected_on(plane),
                     p[1].projected_on(plane))
 
     def distance_to(self, obj):
-        if isinstance(obj,Point):
+        if isinstance(obj, Point):
             # Point-Line implemented by Point
             return obj.distance_to(self)
-        elif isinstance(obj,Line):
+        elif isinstance(obj, Line):
             # Line-Line
             d = obj.r - self.r
-            n = cross(self.t,obj.t)
-            if abs2(n) < 1e-16: # parallel lines
+            n = cross(self.t, obj.t)
+            if abs2(n) < 1e-16:     # parallel lines
                 return math.sqrt(abs2(cross(d, self.t)))
             else:
                 return abs(dot(d, n)) / math.sqrt(abs2(n))
-        elif isinstance(obj,Plane):
+        elif isinstance(obj, Plane):
             # Line-Plane
             l = self.projected_on(obj)
             return self.distance_to(l)
@@ -246,35 +273,35 @@ class Line(object):
             raise ValueError("Invalid argument")
 
     def angle_to(self, obj):
-        if isinstance(obj,Line):
-            return angular_unit*math.acos(min(1,abs(dot(self.t,obj.t))))
-        elif isinstance(obj,Plane):
-            return angular_unit*(math.pi/2 - math.acos(min(1,abs(dot(self.t,obj.n)))))
+        if isinstance(obj, Line):
+            return angular_unit*math.acos(min(1, abs(dot(self.t, obj.t))))
+        elif isinstance(obj, Plane):
+            return angular_unit*(math.pi/2 - math.acos(min(1, abs(dot(self.t, obj.n)))))
         else:
             raise ValueError("Cannot calculate angle to object of this type")
 
-    def midpoint_to(self,obj):
+    def midpoint_to(self, obj):
         """Return a point in the middle of the shortest line connecting this and obj."""
-        if isinstance(obj,Point):
+        if isinstance(obj, Point):
             return obj.midpoint_to(obj.projected_on(self))
-        elif isinstance(obj,Line):
+        elif isinstance(obj, Line):
             d = obj.r - self.r
-            t1t2 = dot(self.t,obj.t)
-            if abs(abs(t1t2)-1) < 1e-12:
-                d = orthogonalized_to(d,self.t)
-                return Point(self.r + 0.5*d)
+            t1t2 = dot(self.t, obj.t)
+            if abs(abs(t1t2) - 1) < 1e-12:
+                d = orthogonalized_to(d, self.t)
+                return Point(self.r + 0.5 * d)
             else:
-                t1d = dot(d,self.t)
-                t2d = dot(d,obj.t)
-                s = (t1t2*t2d - t1d)/(t1t2**2-1)
-                u = (t1t2*t1d - t2d)/(t1t2**2-1)
-                return Point(0.5*(obj.r + u*obj.t  + self.r + s*self.t))                
+                t1d = dot(d, self.t)
+                t2d = dot(d, obj.t)
+                s = (t1t2*t2d - t1d)/(t1t2**2 - 1)
+                u = (t1t2*t1d - t2d)/(t1t2**2 - 1)
+                return Point(0.5*(obj.r + u*obj.t + self.r + s*self.t))
         else:
             return obj.midpoint_to(self)
 
     def __repr__(self):
-        p = self.points()
-        return "Line(%s, %s)" % (repr(p[0]),repr(p[1]))
+        p = self.points
+        return "Line(%s, %s)" % (repr(p[0]), repr(p[1]))
 
     def __str__(self):
         return repr(self)
@@ -282,7 +309,7 @@ class Line(object):
     def dual(self):
         """Return a plane such that plane.normal() == self"""
         d = dual(self.t)
-        return Plane(Point(self.r),Point(self.r + d[0]), Point(self.r + d[1]))
+        return Plane(Point(self.r), Point(self.r + d[0]), Point(self.r + d[1]))
 
 
 class Plane(object):
@@ -308,10 +335,10 @@ class Plane(object):
 
         if len(points) == 2:
             # point and line
-            if isinstance(points[0],Line) and isinstance(points[1],Point):
+            if isinstance(points[0], Line) and isinstance(points[1], Point):
                 p = points[1]
                 l = points[0]
-            elif isinstance(points[1],Line) and isinstance(points[0],Point):
+            elif isinstance(points[1], Line) and isinstance(points[0], Point):
                 p = points[0]
                 l = points[1]
             else:
@@ -321,7 +348,7 @@ class Plane(object):
         elif len(points) == 3:
             self.r = points[0].r
             n = cross(points[1].r - points[0].r,
-                            points[2].r - points[0].r)
+                      points[2].r - points[0].r)
             if abs2(n) < 1e-28:
                 raise ValueError("Degenerate points in Plane()")
             self.n = normalized(n)
@@ -329,10 +356,16 @@ class Plane(object):
             self.r, A = pointset_mass_distribution(points)
             # again assume that the vectors are sorted by value
             val, vec = numpy.linalg.eigh(A)
-            self.n = asarray(vec[:,0]).reshape(3)
+            self.n = asarray(vec[:, 0]).reshape(3)
         else:
             raise ValueError("Too few arguments to Plane()")
 
+    @property
+    def numpy(self):
+        d = dual(self.n)
+        return np.stack([self.r, self.r + d[0], self.r + d[1]])
+
+    @property
     def points(self):
         """ Return three points on the plane.
 
@@ -340,66 +373,67 @@ class Plane(object):
         points form an orthogonal basis relative to the first point.
         """
         d = dual(self.n)
-        return [Point(self.r),Point(self.r + d[0]),Point(self.r + d[1])]
+        return [Point(self.r), Point(self.r + d[0]), Point(self.r + d[1])]
 
     def moved(self, m):
-        p = self.points()
-        return Plane(m.on_point(p[0]),m.on_point(p[1]),m.on_point(p[2]))
+        p = self.points
+        return Plane(m.on_point(p[0]), m.on_point(p[1]), m.on_point(p[2]))
 
     def distance_to(self, obj):
         """ Calculates the distance to a point """
-        if isinstance(obj,Point) or isinstance(obj,Line):
+        if isinstance(obj, Point) or isinstance(obj, Line):
             # Point-Plane and Line-Plane already implemented
             return obj.distance_to(self)
-        elif isinstance(obj,Plane):
+        elif isinstance(obj, Plane):
             if self.angle_to(obj) < 1e-16:
-                #parallel
+                # parallel
                 return obj.distance_to(Point(self.r))
             else:
-                #intersecting
+                # intersecting
                 return 0.0
         else:
             raise TypeError("Invalid type")
 
     def angle_to(self, obj):
         """ Calculates the angle formed between this plane and another Plane or Line (0 to pi/4)"""
-        if isinstance(obj,Line):
+        if isinstance(obj, Line):
             return obj.angle_to(self)
-        elif isinstance(obj,Plane):
-            return angular_unit*math.acos(min(1,abs(dot(self.n,obj.n))))
+        elif isinstance(obj, Plane):
+            return angular_unit*math.acos(min(1, abs(dot(self.n, obj.n))))
         else:
             raise ValueError("Cannot calculate angle to object of this type")
 
-    def midpoint_to(self,obj):
+    def midpoint_to(self, obj):
         """Return a point in the middle of the shortest line connecting this and obj."""
-        if isinstance(obj,Point):
+        if isinstance(obj, Point):
             return obj.midpoint_to(obj.projected_on(self))
-        elif isinstance(obj,Line):
-            if abs(abs(dot(self.n,obj.t)) - 1) < 1e-12: #line normal to the plane
-                d = orthogonalized_to(obj.r - self.r,self.n)
+        elif isinstance(obj, Line):
+            if abs(abs(dot(self.n, obj.t)) - 1) < 1e-12:
+                # line normal to the plane
+                d = orthogonalized_to(obj.r - self.r, self.n)
                 return Point(self.r+d)
             else:
                 return obj.midpoint_to(obj.projected_on(self))
         else:
             raise NotImplemented("Plane-Plane midpoint not implemented")
 
-    def project(self,obj):
+    def project(self, obj):
         """ Projects a point or line onto this plane """
         return obj.projected_on(self)
 
     def normal(self):
         """Return a line normal to the plane"""
-        return Line(Point(self.r),Point(self.r+self.n))
+        return Line(Point(self.r), Point(self.r+self.n))
 
     def __repr__(self):
         """ Three-point representation of a Plane """
-        p = self.points()
-        return "Plane(%s, %s, %s)" % (repr(p[0]),repr(p[1]),repr(p[2]))
+        p = self.points
+        return "Plane(%s, %s, %s)" % (repr(p[0]), repr(p[1]), repr(p[2]))
 
     def __str__(self):
         """ Equation representation of the Plane. Tries to simplify
         coefficients where possible. """
-        #degenerate cases: normal along an axis
+        # degenerate cases: normal along an axis
         absn = abs(self.n)
         if absn[0] < 1e-14:
             if absn[1] < 1e-14:
@@ -414,27 +448,27 @@ class Plane(object):
 
         coefs = self.coef(100)
         str = ""
-        for coef,var in zip(coefs,"xyz"):
-            if abs(coef)>0:
+        for coef, var in zip(coefs, "xyz"):
+            if abs(coef) > 0:
                 if str:
                     if abs(coef) != 1:
-                        str += " {} {}*{}".format("+" if coef>=0 else "-", abs(coef), var)
+                        str += " {} {}*{}".format("+" if coef >= 0 else "-", abs(coef), var)
                     else:
-                        str += " {} {}".format("+" if coef>=0 else "-", var)
+                        str += " {} {}".format("+" if coef >= 0 else "-", var)
                 else:
 
                     if abs(coef) != 1:
-                        str += "{}*{}".format(coef,var)
+                        str += "{}*{}".format(coef, var)
                     else:
                         str += var
         str += " = {}".format(coefs[3])
         return str
 
-    def separates(self,p1,p2):
+    def separates(self, p1, p2):
         """Test if the plane separates (is inbetween) two points"""
-        return dot(p1.r - self.r,self.n)*dot(p2.r - self.r,self.n) < 0
+        return dot(p1.r - self.r, self.n)*dot(p2.r - self.r, self.n) < 0
 
-    def coef(self,maxcoef=None):
+    def coef(self, maxcoef=None):
         """coef(array,int) -> array
         Returns a tuple with coefficients (a,b,c,d) which satisfy the equation
 
@@ -449,26 +483,27 @@ class Plane(object):
         coefficients of the plane are irrational or greater than maxcoef, the
         method will give up and return real-valued coefficients.
         """
-        tol = 1e-14 #machine precision
-
-        n = append(self.n,dot(self.n,self.r)) #real-valued abcd
+        tol = 1e-14
+        # machine precision
+        # real-valued abcd
+        n = append(self.n, dot(self.n, self.r))
         if maxcoef > 0:
-            nr = n*max(abs(n)) # should be rational: [a,b,c]/|v|^2*max(a,b,c)
+            nr = n*max(abs(n))
+            # should be rational: [a,b,c]/|v|^2*max(a,b,c)
             nf = [fractions.Fraction(c).limit_denominator(maxcoef**2) for c in nr]
-            if all([abs(nr[i]-nf[i])<tol for i in xrange(len(nr))]):
-                #Good rational approximation for all coef
-                factor = reduce(fractions.gcd, nf )
+            if all([abs(nr[i]-nf[i]) < tol for i in range(len(nr))]):
+                # Good rational approximation for all coef
+                factor = functools.reduce(math.gcd, nf)
                 vi = [f/factor for f in nf]
-                assert( all([f.denominator == 1 for f in vi]) )
+                assert all([f.denominator == 1 for f in vi])
                 n = array([f.numerator for f in vi])
-            #No rational approximation, so use real
-
+            # No rational approximation, so use real
         # make first coef positive by convention
         if n[0] < 0:
             n = -n
-
         return n
-    def orientation(self,point):
+
+    def orientation(self, point):
         """ orientation(Point) -> int
 
         Returns 1,0, or -1 based on whether the input point is above, on, or
@@ -476,45 +511,49 @@ class Plane(object):
         conditions at creation, but should remain consistent following
         movements.
         """
-        p = point.r - self.r #vector from our origin to the point
-        d = dot(self.n,p)
+        p = point.r - self.r
+        # vector from our origin to the point
+        d = dot(self.n, p)
         return int(sign(d))
-    def intersection(self,obj):
+
+    def intersection(self, obj):
         """ Get the intersection of this Plane with another object.
         The intersection may be a Plane, Line, Point, or None
         """
 
-        if isinstance(obj,Plane):
+        if isinstance(obj, Plane):
             if self.angle_to(obj) < 1e-14:
-                #parallel
-                if self.distance_to(obj) <1e-14:
-                    #co-incident
+                # parallel
+                if self.distance_to(obj) < 1e-14:
+                    # co-incident
                     return self
                 else:
                     return None
             else:
-                #intersecting
-                a = cross(self.n,obj.n) #normal of the resulting line
+                # intersecting
+                a = cross(self.n, obj.n)
+                # normal of the resulting line
 
-                #Find a point on the line
-                zerocol = max(zip(abs(a),range(3)))[1] #index of largest component
+                # Find a point on the line
+                zerocol = max(zip(abs(a), range(3)))[1]
+                # index of largest component
 
                 # 2x2 matrix formed from normals, ommitting zerocol
                 # Since we know they intersect, should be well-determined
-                m = array([(self.n[i],obj.n[i]) for i in xrange(3) if i != zerocol]).T
-                b1 = dot(self.n,self.r)
-                b2 = dot(obj.n,obj.r)
-                sol = linalg.solve(m,array([b1,b2]))
+                m = array([(self.n[i], obj.n[i]) for i in range(3) if i != zerocol]).T
+                b1 = dot(self.n, self.r)
+                b2 = dot(obj.n, obj.r)
+                sol = linalg.solve(m, array([b1, b2]))
 
                 # Add 0 in to the solution in the right place
-                #pt = [sol[i] if i<zerocol else (0 if i==zerocol else sol[i-1]) for i in xrange(3)]
-                pt = concatenate((sol[:zerocol],[0.],sol[zerocol:]))
+                # pt = [sol[i] if i<zerocol else (0 if i==zerocol else sol[i-1]) for i in xrange(3)]
+                pt = concatenate((sol[:zerocol], [0.], sol[zerocol:]))
                 pt = array(pt)
 
-                return Line(Point(pt),Point(pt+a))
-        elif isinstance(obj,Line):
-            pass #TODO
-        elif isinstance(obj,Point):
+                return Line(Point(pt), Point(pt+a))
+        elif isinstance(obj, Line):
+            pass # TODO
+        elif isinstance(obj, Point):
             if self.distance_to(obj) < 1e-14:
                 return obj
             else:
@@ -544,11 +583,11 @@ class Movement(object):
         self.q = None # rotation quaternion, if applicable
         if isinstance(from_obj,Point) and isinstance(to_obj,Point):
             self.dr = to_obj.r - from_obj.r
-        elif isinstance(from_obj,Point) and isinstance(to_obj,Line):
+        elif isinstance(from_obj, Point) and isinstance(to_obj,Line):
             # move point to closest point on line
             p = from_obj.projected_on(to_obj)
             self.dr = p.r - from_obj.r
-        elif isinstance(from_obj,Point) and isinstance(to_obj,Plane):
+        elif isinstance(from_obj, Point) and isinstance(to_obj,Plane):
             # move point to nearest point in plane
             p = from_obj.projected_on(to_obj)
             self.dr = p.r - from_obj.r
@@ -567,7 +606,7 @@ class Movement(object):
         elif isinstance(from_obj,Line) and isinstance(to_obj,Plane):
             # move line onto its projection in the plane
             lp = from_obj.projected_on(to_obj)
-            return Movement.__init__(self,from_obj,lp)
+            Movement.__init__(self,from_obj,lp)
         elif isinstance(from_obj,Plane) and isinstance(to_obj,Point):
             # inverse of Point to plane motion
             Movement.__init__(self,to_obj,from_obj)
@@ -627,6 +666,46 @@ class Movement(object):
 
     def is_pure_translation(self):
         return self.q == None or abs(self.q[0] - 1) < 1e-12
+
+
+
+class Face(Plane):
+    def __init__(self, *points):
+        Plane.__init__(self, *points)
+
+
+
+def ray_triangle_inters(p, d, v0, v1, v2):
+
+    e1 = v1 - v0
+    e2 = v2 - v0
+
+    h = cross(d, e2)
+    a = inner(e1, h)
+
+    if a > -0.00001 and a < 0.00001:
+        return False
+
+    f = 1 / a
+    s = cross(p, v0)
+    u = f * inner(s, h)
+
+    if u < 0.0 or u > 1.0:
+        return False
+
+    q = cross(s, e1)
+    v = f * inner(d, q)
+
+    if v < 0.0 or u + v > 1.0:
+        return False
+
+    # at this stage we can compute t to find out where
+    # the intersection point is on the line
+    t = f * inner(e2, q)
+    if t > 0.00001:
+        return True
+
+    return False
 
 
 

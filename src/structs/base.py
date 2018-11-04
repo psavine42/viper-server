@@ -11,6 +11,7 @@ def uid_fn():
 # -------------------------------------------------
 class GraphData(object):
     __slots__ = ['_id', '_data', '_tmp', '_cells']
+
     def __init__(self, **kwargs):
         self._data = kwargs
         self._id = uid_fn()
