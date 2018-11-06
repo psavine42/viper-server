@@ -87,16 +87,6 @@
       <change afterPath="$PROJECT_DIR$/../ifctograph/test/testtreegen.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../ifctograph/train.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../ifctograph/xtest.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/spec/fp3d.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/spec/scenario.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ext.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/formats/adapters.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/formats/dxf.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/formats/revit.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/formats/sat.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/formats/skansk.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/geombase.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/proximity.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../construction-crawl/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../construction-crawl/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/conf/__init__.py" beforeDir="false" />
@@ -149,17 +139,13 @@
       <change beforePath="$PROJECT_DIR$/../construction-crawl/utils/util.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../sentiment-discovery/configure_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/../sentiment-discovery/configure_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../sentiment-discovery/model/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/../sentiment-discovery/model/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/viper.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/viper.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/Readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/dist/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/dist/main.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/dist/main.min.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/jupyter/.ipynb_checkpoints/testing_3dgraphbuild-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/jupyter/.ipynb_checkpoints/testing_3dgraphbuild-checkpoint.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/jupyter/testing_3dgraphbuild.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/jupyter/testing_3dgraphbuild.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jupyter/.ipynb_checkpoints/skanska-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/jupyter/.ipynb_checkpoints/skanska-checkpoint.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jupyter/skanska.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/jupyter/skanska.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/InventorLoader/Acis.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/InventorLoader/Acis.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/InventorLoader/Acis2Step.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/InventorLoader/Acis2Step.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/InventorLoader/importerUtils.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/InventorLoader/importerUtils.py" afterDir="false" />
@@ -173,18 +159,15 @@
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/tree.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/tree.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/zmqserver.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/zmqserver.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/visualizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/hvac.py" beforeDir="false" afterPath="$PROJECT_DIR$/spec/hvac.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/geom.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/geom.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/formats/skansk.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/formats/skansk.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/geombase.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/geombase.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/process.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/process.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/propogate/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/propogate/base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/propogate/geometric.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/propogate/geometric.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/propogate/propagators.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/propogate/propagators.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/rules/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/rules/engine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/structs/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/render/render_propogators.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/render/render_propogators.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/structs/edge.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/edge.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/structs/node.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/structs/node.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ui/visual.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/visual.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/viper.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/viper.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -215,9 +198,10 @@
           <entry key="project.open.time.113" value="1" />
           <entry key="project.open.time.64" value="1" />
           <entry key="project.open.time.7" value="2" />
+          <entry key="project.open.time.71" value="1" />
           <entry key="project.open.time.74" value="1" />
           <entry key="project.open.time.87" value="1" />
-          <entry key="project.opened" value="7" />
+          <entry key="project.opened" value="8" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
@@ -228,7 +212,7 @@
           <entry key="js" value="1126" />
           <entry key="json" value="85" />
           <entry key="md" value="164" />
-          <entry key="py" value="79544" />
+          <entry key="py" value="82330" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
@@ -238,13 +222,13 @@
           <entry key="JavaScript" value="1126" />
           <entry key="Markdown" value="164" />
           <entry key="PLAIN_TEXT" value="122" />
-          <entry key="Python" value="79544" />
+          <entry key="Python" value="82330" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
           <entry key="csv" value="2" />
-          <entry key="gitignore" value="3" />
+          <entry key="gitignore" value="4" />
           <entry key="html" value="5" />
           <entry key="js" value="19" />
           <entry key="json" value="24" />
@@ -252,7 +236,7 @@
           <entry key="lock" value="1" />
           <entry key="md" value="6" />
           <entry key="obj" value="1" />
-          <entry key="py" value="357" />
+          <entry key="py" value="368" />
           <entry key="rst" value="1" />
           <entry key="xml" value="1" />
         </counts>
@@ -263,8 +247,8 @@
           <entry key="JSON" value="24" />
           <entry key="JavaScript" value="19" />
           <entry key="Markdown" value="6" />
-          <entry key="PLAIN_TEXT" value="7" />
-          <entry key="Python" value="357" />
+          <entry key="PLAIN_TEXT" value="8" />
+          <entry key="Python" value="368" />
           <entry key="ReST" value="1" />
           <entry key="XML" value="1" />
           <entry key="yarn.lock" value="1" />
@@ -273,31 +257,35 @@
     </session>
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.35384616">
+    <splitter split-orientation="horizontal" split-proportion="0.5091592">
       <split-first>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="525">
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/formats/skansk.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="1439">
-                  <caret line="412" column="12" selection-start-line="412" selection-start-column="12" selection-end-line="412" selection-end-column="12" />
+                <state relative-caret-position="350">
+                  <caret line="313" column="21" selection-start-line="313" selection-start-column="21" selection-end-line="313" selection-end-column="21" />
                   <folding>
-                    <element signature="e#2147#3051#0" />
-                    <element signature="e#4903#5860#0" />
-                    <element signature="e#5902#6400#0" />
-                    <element signature="e#6484#8101#0" />
-                    <element signature="e#6479#6495#1" expanded="true" />
-                    <element signature="e#6631#7809#0" />
-                    <element signature="e#8320#11640#0" />
-                    <element signature="e#10694#11976#0" />
-                    <element signature="e#12019#12417#0" />
-                    <marker date="1541293648718" expanded="true" signature="471:643" ph="..." />
-                    <marker date="1541293648718" expanded="true" signature="822:825" ph="..." />
-                    <marker date="1541293648718" expanded="true" signature="2271:2272" ph="..." />
-                    <marker date="1541293648718" expanded="true" signature="3480:16846" ph="..." />
-                    <marker date="1541293648718" expanded="true" signature="4996:5015" ph="..." />
-                    <marker date="1541293648718" expanded="true" signature="12395:12409" ph="..." />
-                    <marker date="1541293648718" expanded="true" signature="13267:13301" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="482:654" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="833:836" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="2282:2283" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="3492:16560" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="4985:4986" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="12576:12601" ph="..." />
+                    <marker date="1541463659223" expanded="true" signature="13459:13493" ph="..." />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/lib/meshcat/src/meshcat/transformations.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="9548">
+                  <caret line="934" column="47" selection-start-line="934" selection-start-column="47" selection-end-line="934" selection-end-column="47" />
+                  <folding>
+                    <element signature="e#11357#12273#1" expanded="true" />
+                    <element signature="e#32086#32531#1" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -306,12 +294,13 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/geombase.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="188">
-                  <caret line="133" column="53" lean-forward="true" selection-start-line="133" selection-start-column="53" selection-end-line="133" selection-end-column="53" />
+                <state relative-caret-position="3916">
+                  <caret line="249" column="49" selection-start-line="249" selection-start-column="49" selection-end-line="249" selection-end-column="49" />
                   <folding>
-                    <marker date="1541220816616" expanded="true" signature="2047:2050" ph="..." />
-                    <marker date="1541220816616" expanded="true" signature="2858:7823" ph="..." />
-                    <marker date="1541220816616" expanded="true" signature="3650:3654" ph="..." />
+                    <marker date="1541370668297" expanded="true" signature="2047:2050" ph="..." />
+                    <marker date="1541370668297" expanded="true" signature="2858:7970" ph="..." />
+                    <marker date="1541370668297" expanded="true" signature="3650:3654" ph="..." />
+                    <marker date="1541370668297" expanded="true" signature="6956:7475" ph="..." />
                   </folding>
                 </state>
               </provider>
@@ -320,178 +309,131 @@
         </leaf>
       </split-first>
       <split-second>
-        <splitter split-orientation="horizontal" split-proportion="0.40350878">
+        <splitter split-orientation="vertical" split-proportion="0.8457557">
           <split-first>
-            <splitter split-orientation="vertical" split-proportion="0.50931674">
-              <split-first>
-                <leaf SIDE_TABS_SIZE_LIMIT_KEY="450">
-                  <file pinned="false" current-in-tab="false">
-                    <entry file="file://$PROJECT_DIR$/src/rules/engine.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="550">
-                          <caret line="186" column="10" lean-forward="true" selection-start-line="186" selection-start-column="10" selection-end-line="186" selection-end-column="10" />
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                  <file pinned="false" current-in-tab="false">
-                    <entry file="file://$PROJECT_DIR$/src/formats/sat.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="312">
-                          <caret line="337" column="21" selection-start-line="337" selection-start-column="21" selection-end-line="337" selection-end-column="21" />
-                          <folding>
-                            <element signature="e#6942#7102#0" />
-                            <element signature="e#7896#7912#1" expanded="true" />
-                            <element signature="e#7317#8894#0" />
-                            <marker date="1541287219022" expanded="true" signature="5014:5056" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="5087:5141" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="5170:5214" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="5541:5550" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="6276:6285" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="7905:9140" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="8680:8740" ph="..." />
-                            <marker date="1541287219022" expanded="true" signature="8987:9018" ph="..." />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                  <file pinned="false" current-in-tab="true">
-                    <entry file="file://$PROJECT_DIR$/src/geom.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="1817">
-                          <caret line="712" column="20" lean-forward="true" selection-start-line="712" selection-start-column="20" selection-end-line="712" selection-end-column="20" />
-                          <folding>
-                            <element signature="e#537#6471#0" />
-                            <element signature="e#7291#7854#0" />
-                            <element signature="e#7901#12326#0" />
-                            <element signature="e#12453#12614#1" expanded="true" />
-                            <marker date="1541291609118" expanded="true" signature="1364:1396" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="2383:2389" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="2418:2450" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="2480:2522" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="5994:6062" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="6083:6102" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="8646:8652" ph="..." />
-                            <marker date="1541291609118" expanded="true" signature="24686:24692" ph="..." />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                </leaf>
-              </split-first>
-              <split-second>
-                <leaf>
-                  <file pinned="false" current-in-tab="true">
-                    <entry file="file://$PROJECT_DIR$/src/formats/dxf.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="298">
-                          <caret line="32" column="27" lean-forward="true" selection-start-line="32" selection-start-column="27" selection-end-line="32" selection-end-column="27" />
-                          <folding>
-                            <marker date="1541272723413" expanded="true" signature="719:778" ph="..." />
-                            <marker date="1541272723413" expanded="true" signature="1058:1118" ph="..." />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                </leaf>
-              </split-second>
-            </splitter>
+            <leaf SIDE_TABS_SIZE_LIMIT_KEY="450">
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/geom.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="7194">
+                      <caret line="563" column="26" selection-start-line="563" selection-start-column="26" selection-end-line="563" selection-end-column="26" />
+                      <folding>
+                        <element signature="e#537#6471#0" />
+                        <element signature="e#7291#7854#0" />
+                        <element signature="e#12453#12614#1" expanded="true" />
+                        <marker date="1541291609118" expanded="true" signature="1364:1396" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="2383:2389" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="2418:2450" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="2480:2522" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="5994:6062" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="6083:6102" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="8646:8652" ph="..." />
+                        <marker date="1541291609118" expanded="true" signature="24686:24692" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/propogate/propagators.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="1242">
+                      <caret line="46" lean-forward="true" selection-start-line="46" selection-end-line="46" />
+                      <folding>
+                        <element signature="e#3251#3422#1" expanded="true" />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/structs/edge.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="980">
+                      <caret line="104" column="35" lean-forward="true" selection-start-line="104" selection-start-column="35" selection-end-line="104" selection-end-column="35" />
+                      <folding>
+                        <marker date="1541461624786" expanded="true" signature="2454:2459" ph="..." />
+                        <marker date="1541461624786" expanded="true" signature="2590:2596" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/propogate/base.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="4576">
+                      <caret line="208" column="37" selection-start-line="208" selection-start-column="37" selection-end-line="208" selection-end-column="37" />
+                      <folding>
+                        <marker date="1541389259745" expanded="true" signature="1914:1916" ph="..." />
+                        <marker date="1541389259745" expanded="true" signature="3586:4048" ph="..." />
+                        <marker date="1541389259745" expanded="true" signature="4385:6548" ph="..." />
+                        <marker date="1541389259745" expanded="true" signature="6382:6548" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="true">
+                <entry file="file://$PROJECT_DIR$/src/process.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="392">
+                      <caret line="26" lean-forward="true" selection-start-line="26" selection-end-line="26" />
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/src/structs/node.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="828">
+                      <caret line="97" lean-forward="true" selection-start-line="97" selection-end-line="97" />
+                      <folding>
+                        <marker date="1541462157370" expanded="true" signature="1940:2448" ph="..." />
+                        <marker date="1541462157370" expanded="true" signature="3413:3422" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="false">
+                <entry file="file://$PROJECT_DIR$/lib/geo.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="12562">
+                      <caret line="649" column="23" selection-start-line="649" selection-start-column="16" selection-end-line="649" selection-end-column="23" />
+                      <folding>
+                        <element signature="e#0#86#1" expanded="true" />
+                        <marker date="1541356607097" expanded="true" signature="3695:3704" ph="..." />
+                        <marker date="1541356607097" expanded="true" signature="6189:6195" ph="..." />
+                        <marker date="1541356607097" expanded="true" signature="6226:6382" ph="..." />
+                        <marker date="1541356607097" expanded="true" signature="10782:10787" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+            </leaf>
           </split-first>
           <split-second>
-            <splitter split-orientation="vertical" split-proportion="0.871118">
-              <split-first>
-                <leaf>
-                  <file pinned="false" current-in-tab="false">
-                    <entry file="file://$PROJECT_DIR$/src/propogate/base.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="221">
-                          <caret line="117" column="22" lean-forward="true" selection-start-line="117" selection-start-column="22" selection-end-line="117" selection-end-column="22" />
-                          <folding>
-                            <marker date="1541214931446" expanded="true" signature="1914:1916" ph="..." />
-                            <marker date="1541214931446" expanded="true" signature="3586:4048" ph="..." />
-                            <marker date="1541214931446" expanded="true" signature="4385:6413" ph="..." />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                  <file pinned="false" current-in-tab="false">
-                    <entry file="file://$PROJECT_DIR$/src/process.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="1011">
-                          <caret line="153" column="34" lean-forward="true" selection-start-line="153" selection-start-column="34" selection-end-line="153" selection-end-column="34" />
-                          <folding>
-                            <element signature="e#2778#3414#1" expanded="true" />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                  <file pinned="false" current-in-tab="false">
-                    <entry file="file://$PROJECT_DIR$/src/structs/node.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="1562">
-                          <caret line="71" column="32" lean-forward="true" selection-start-line="71" selection-start-column="32" selection-end-line="71" selection-end-column="32" />
-                          <folding>
-                            <element signature="e#2533#2593#1" expanded="true" />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                  <file pinned="false" current-in-tab="false">
-                    <entry file="file://$PROJECT_DIR$/lib/geo.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="1588">
-                          <caret line="639" column="12" lean-forward="true" selection-start-line="639" selection-start-column="12" selection-end-line="639" selection-end-column="12" />
-                          <folding>
-                            <element signature="e#0#86#1" expanded="true" />
-                            <element signature="e#8811#18322#0" />
-                            <marker date="1541294039868" expanded="true" signature="3695:3704" ph="..." />
-                            <marker date="1541294039868" expanded="true" signature="6189:6195" ph="..." />
-                            <marker date="1541294039868" expanded="true" signature="6226:6382" ph="..." />
-                            <marker date="1541294039868" expanded="true" signature="10782:10787" ph="..." />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                  <file pinned="false" current-in-tab="true">
-                    <entry file="file://$PROJECT_DIR$/.gitignore">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="110">
-                          <caret line="5" column="19" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                </leaf>
-              </split-first>
-              <split-second>
-                <leaf>
-                  <file pinned="false" current-in-tab="true">
-                    <entry file="file://$PROJECT_DIR$/src/ui/visual.py">
-                      <provider selected="true" editor-type-id="text-editor">
-                        <state relative-caret-position="147">
-                          <caret line="223" column="27" lean-forward="true" selection-start-line="223" selection-start-column="27" selection-end-line="223" selection-end-column="27" />
-                          <folding>
-                            <marker date="1541036804486" expanded="true" signature="328:365" ph="..." />
-                            <marker date="1541036804486" expanded="true" signature="952:1019" ph="..." />
-                            <marker date="1541036804486" expanded="true" signature="2118:2120" ph="..." />
-                            <marker date="1541036804486" expanded="true" signature="3049:3332" ph="..." />
-                            <marker date="1541036804486" expanded="true" signature="4624:4713" ph="..." />
-                            <marker date="1541036804486" expanded="true" signature="5560:5614" ph="..." />
-                          </folding>
-                        </state>
-                      </provider>
-                    </entry>
-                  </file>
-                </leaf>
-              </split-second>
-            </splitter>
+            <leaf SIDE_TABS_SIZE_LIMIT_KEY="450">
+              <file pinned="false" current-in-tab="true">
+                <entry file="file://$PROJECT_DIR$/src/ui/visual.py">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="97">
+                      <caret line="198" column="23" selection-start-line="198" selection-start-column="23" selection-end-line="198" selection-end-column="23" />
+                      <folding>
+                        <marker date="1541359067410" expanded="true" signature="328:365" ph="..." />
+                        <marker date="1541359067410" expanded="true" signature="952:1019" ph="..." />
+                        <marker date="1541359067410" expanded="true" signature="2118:2120" ph="..." />
+                        <marker date="1541359067410" expanded="true" signature="3081:3364" ph="..." />
+                        <marker date="1541359067410" expanded="true" signature="4656:4745" ph="..." />
+                        <marker date="1541359067410" expanded="true" signature="5592:5646" ph="..." />
+                      </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+            </leaf>
           </split-second>
         </splitter>
       </split-second>
@@ -508,7 +450,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>convex_de</find>
       <find>triangles_tr</find>
       <find>facets</find>
       <find>distance</find>
@@ -537,6 +478,7 @@
       <find>class Transform</find>
       <find>plane</find>
       <find>ellipse</find>
+      <find>similar_dir_abs</find>
       <find>cdist</find>
     </findStrings>
     <dirStrings>
@@ -549,7 +491,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/src/factory.py" />
         <option value="$PROJECT_DIR$/src/rules/hvac.py" />
         <option value="$PROJECT_DIR$/src/misc/visualize.py" />
         <option value="$PROJECT_DIR$/data/sample/geom2.json" />
@@ -582,24 +523,25 @@
         <option value="$PROJECT_DIR$/src/formats/adapters.py" />
         <option value="$PROJECT_DIR$/src/viper.py" />
         <option value="$PROJECT_DIR$/src/proximity.py" />
-        <option value="$PROJECT_DIR$/src/propogate/propagators.py" />
-        <option value="$PROJECT_DIR$/src/ui/visual.py" />
         <option value="$PROJECT_DIR$/src/propogate/geometric.py" />
-        <option value="$PROJECT_DIR$/src/structs/edge.py" />
         <option value="$PROJECT_DIR$/src/rules/engine.py" />
         <option value="$PROJECT_DIR$/src/structs/base.py" />
-        <option value="$PROJECT_DIR$/src/propogate/base.py" />
-        <option value="$PROJECT_DIR$/src/geombase.py" />
         <option value="$PROJECT_DIR$/lib/InventorLoader/Acis.py" />
         <option value="$PROJECT_DIR$/src/formats/revit.py" />
         <option value="$PROJECT_DIR$/src/formats/dxf.py" />
-        <option value="$PROJECT_DIR$/src/structs/node.py" />
         <option value="$PROJECT_DIR$/src/formats/sat.py" />
         <option value="$PROJECT_DIR$/src/geom.py" />
-        <option value="$PROJECT_DIR$/src/process.py" />
-        <option value="$PROJECT_DIR$/src/formats/skansk.py" />
-        <option value="$PROJECT_DIR$/lib/geo.py" />
         <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/lib/geo.py" />
+        <option value="$PROJECT_DIR$/src/ui/visual.py" />
+        <option value="$PROJECT_DIR$/src/geombase.py" />
+        <option value="$PROJECT_DIR$/src/render/render_propogators.py" />
+        <option value="$PROJECT_DIR$/src/propogate/base.py" />
+        <option value="$PROJECT_DIR$/src/propogate/propagators.py" />
+        <option value="$PROJECT_DIR$/src/structs/edge.py" />
+        <option value="$PROJECT_DIR$/src/structs/node.py" />
+        <option value="$PROJECT_DIR$/src/formats/skansk.py" />
+        <option value="$PROJECT_DIR$/src/process.py" />
       </list>
     </option>
   </component>
@@ -618,9 +560,9 @@
     </packageJsonPaths>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="5129" />
-    <option name="y" value="27" />
-    <option name="width" value="2534" />
+    <option name="x" value="5351" />
+    <option name="y" value="24" />
+    <option name="width" value="2193" />
     <option name="height" value="2105" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
@@ -642,11 +584,6 @@
             <path>
               <item name="viper" type="b2602c69:ProjectViewProjectNode" />
               <item name="viper" type="462c0819:PsiDirectoryNode" />
-              <item name="lib" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="viper" type="b2602c69:ProjectViewProjectNode" />
-              <item name="viper" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -660,6 +597,18 @@
               <item name="viper" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
               <item name="propogate" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="viper" type="b2602c69:ProjectViewProjectNode" />
+              <item name="viper" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="render" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="viper" type="b2602c69:ProjectViewProjectNode" />
+              <item name="viper" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="rules" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -715,10 +664,10 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="5129" y="27" width="2534" height="2105" extended-state="0" />
+    <frame x="5351" y="24" width="2193" height="2105" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" x="2796" y="1170" width="386" height="935" id="Project" order="0" type="FLOATING" visible="true" weight="0.24991614" />
+      <window_info active="true" content_ui="combo" x="132" y="768" width="492" height="1050" id="Project" order="0" type="FLOATING" visible="true" weight="0.24991614" />
       <window_info id="Structure" order="1" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -748,35 +697,11 @@
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/propogate/propagators.py</url>
-          <line>48</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
-  </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/spec/seg_data.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-694" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/spec/logic.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-3234" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/acis/acis/call.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1386">
           <caret line="84" column="18" selection-start-line="84" selection-start-column="18" selection-end-line="84" selection-end-column="18" />
-          <folding>
-            <element signature="e#0#440#1" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -784,9 +709,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="286">
           <caret line="13" lean-forward="true" selection-start-line="13" selection-end-line="13" />
-          <folding>
-            <element signature="e#0#64#1" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -919,9 +841,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-195">
           <caret line="109" column="6" selection-start-line="109" selection-start-column="6" selection-end-line="109" selection-end-column="6" />
-          <folding>
-            <element signature="e#164#1469#1" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -933,20 +852,7 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/acis/acis/stream.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <folding>
-            <element signature="e#0#608#1" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/meshcat/src/meshcat/transformations.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="324">
-          <caret line="201" column="21" lean-forward="true" selection-start-line="201" selection-start-column="21" selection-end-line="201" selection-end-column="21" />
-        </state>
-      </provider>
+      <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/spec/fp3d.py">
       <provider selected="true" editor-type-id="text-editor" />
@@ -962,9 +868,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1034">
           <caret line="54" lean-forward="true" selection-start-line="54" selection-end-line="54" />
-          <folding>
-            <marker date="1540683971727" expanded="true" signature="449:544" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1001,9 +904,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-1364">
           <caret line="14" selection-start-line="14" selection-end-line="14" />
-          <folding>
-            <marker date="1540687163689" expanded="true" signature="2989:3039" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1026,9 +926,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="44">
           <caret line="2" column="18" selection-start-line="2" selection-start-column="18" selection-end-line="2" selection-end-column="18" />
-          <folding>
-            <marker date="1540867593710" expanded="true" signature="156:286" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1036,13 +933,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="330">
           <caret line="15" column="4" selection-start-line="15" selection-start-column="4" selection-end-line="15" selection-end-column="43" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/rules/heursitics.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1144">
-          <caret line="52" column="24" selection-start-line="52" selection-start-column="17" selection-end-line="52" selection-end-column="24" />
         </state>
       </provider>
     </entry>
@@ -1104,16 +994,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="726">
           <caret line="2091" column="53" selection-start-line="2091" selection-start-column="48" selection-end-line="2091" selection-end-column="53" />
-          <folding>
-            <element signature="e#25#127#1" expanded="true" />
-            <marker date="1541264374497" expanded="true" signature="40957:40960" ph="..." />
-            <marker date="1541264374497" expanded="true" signature="41037:41040" ph="..." />
-            <marker date="1541264374497" expanded="true" signature="41119:41122" ph="..." />
-            <marker date="1541264374497" expanded="true" signature="44378:44381" ph="..." />
-            <marker date="1541264374497" expanded="true" signature="61030:61039" ph="..." />
-            <marker date="1541264374497" expanded="true" signature="61210:61211" ph="..." />
-            <marker date="1541264374497" expanded="true" signature="61210:61219" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1128,9 +1008,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="66">
           <caret line="6" column="12" selection-start-line="6" selection-start-column="12" selection-end-line="6" selection-end-column="12" />
-          <folding>
-            <marker date="1541270723295" expanded="true" signature="95:128" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1141,35 +1018,17 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/structs/edge.py">
+    <entry file="file://$PROJECT_DIR$/src/formats/dxf.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-682">
-          <caret line="62" column="30" lean-forward="true" selection-start-line="62" selection-start-column="30" selection-end-line="62" selection-end-column="30" />
-          <folding>
-            <element signature="e#1685#1716#1" expanded="true" />
-          </folding>
+        <state relative-caret-position="401">
+          <caret line="28" column="19" selection-start-line="28" selection-start-column="19" selection-end-line="28" selection-end-column="19" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/geombase.py">
+    <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="188">
-          <caret line="133" column="53" lean-forward="true" selection-start-line="133" selection-start-column="53" selection-end-line="133" selection-end-column="53" />
-          <folding>
-            <marker date="1541220816616" expanded="true" signature="2047:2050" ph="..." />
-            <marker date="1541220816616" expanded="true" signature="2858:7823" ph="..." />
-            <marker date="1541220816616" expanded="true" signature="3650:3654" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/propogate/propagators.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1716">
-          <caret line="126" column="23" selection-start-line="126" selection-start-column="23" selection-end-line="126" selection-end-column="23" />
-          <folding>
-            <element signature="e#3251#3422#1" expanded="true" />
-          </folding>
+        <state relative-caret-position="110">
+          <caret line="5" column="19" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
         </state>
       </provider>
     </entry>
@@ -1180,57 +1039,65 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/propogate/base.py">
+    <entry file="file://$PROJECT_DIR$/src/render/render.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="221">
-          <caret line="117" column="22" lean-forward="true" selection-start-line="117" selection-start-column="22" selection-end-line="117" selection-end-column="22" />
-          <folding>
-            <marker date="1541214931446" expanded="true" signature="1914:1916" ph="..." />
-            <marker date="1541214931446" expanded="true" signature="3586:4048" ph="..." />
-            <marker date="1541214931446" expanded="true" signature="4385:6413" ph="..." />
-          </folding>
+        <state relative-caret-position="855">
+          <caret line="52" column="20" selection-start-line="52" selection-start-column="20" selection-end-line="52" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/render/render_propogators.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="660">
+          <caret line="33" column="26" lean-forward="true" selection-start-line="33" selection-start-column="26" selection-end-line="33" selection-end-column="26" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/formats/sat.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="312">
+        <state relative-caret-position="-102">
           <caret line="337" column="21" selection-start-line="337" selection-start-column="21" selection-end-line="337" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/rules/heursitics.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="396">
+          <caret line="97" column="32" selection-start-line="97" selection-start-column="32" selection-end-line="97" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/meshcat/src/meshcat/transformations.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="9548">
+          <caret line="934" column="47" selection-start-line="934" selection-start-column="47" selection-end-line="934" selection-end-column="47" />
           <folding>
-            <element signature="e#6942#7102#0" />
-            <element signature="e#7896#7912#1" expanded="true" />
-            <element signature="e#7317#8894#0" />
-            <marker date="1541287219022" expanded="true" signature="5014:5056" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="5087:5141" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="5170:5214" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="5541:5550" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="6276:6285" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="7905:9140" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="8680:8740" ph="..." />
-            <marker date="1541287219022" expanded="true" signature="8987:9018" ph="..." />
+            <element signature="e#11357#12273#1" expanded="true" />
+            <element signature="e#32086#32531#1" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/formats/dxf.py">
+    <entry file="file://$PROJECT_DIR$/src/geombase.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="298">
-          <caret line="32" column="27" lean-forward="true" selection-start-line="32" selection-start-column="27" selection-end-line="32" selection-end-column="27" />
+        <state relative-caret-position="3916">
+          <caret line="249" column="49" selection-start-line="249" selection-start-column="49" selection-end-line="249" selection-end-column="49" />
           <folding>
-            <marker date="1541272723413" expanded="true" signature="719:778" ph="..." />
-            <marker date="1541272723413" expanded="true" signature="1058:1118" ph="..." />
+            <marker date="1541370668297" expanded="true" signature="2047:2050" ph="..." />
+            <marker date="1541370668297" expanded="true" signature="2858:7970" ph="..." />
+            <marker date="1541370668297" expanded="true" signature="3650:3654" ph="..." />
+            <marker date="1541370668297" expanded="true" signature="6956:7475" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/geom.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1817">
-          <caret line="712" column="20" lean-forward="true" selection-start-line="712" selection-start-column="20" selection-end-line="712" selection-end-column="20" />
+        <state relative-caret-position="7194">
+          <caret line="563" column="26" selection-start-line="563" selection-start-column="26" selection-end-line="563" selection-end-column="26" />
           <folding>
             <element signature="e#537#6471#0" />
             <element signature="e#7291#7854#0" />
-            <element signature="e#7901#12326#0" />
             <element signature="e#12453#12614#1" expanded="true" />
             <marker date="1541291609118" expanded="true" signature="1364:1396" ph="..." />
             <marker date="1541291609118" expanded="true" signature="2383:2389" ph="..." />
@@ -1244,85 +1111,100 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/ui/visual.py">
+    <entry file="file://$PROJECT_DIR$/src/propogate/base.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="147">
-          <caret line="223" column="27" lean-forward="true" selection-start-line="223" selection-start-column="27" selection-end-line="223" selection-end-column="27" />
+        <state relative-caret-position="4576">
+          <caret line="208" column="37" selection-start-line="208" selection-start-column="37" selection-end-line="208" selection-end-column="37" />
           <folding>
-            <marker date="1541036804486" expanded="true" signature="328:365" ph="..." />
-            <marker date="1541036804486" expanded="true" signature="952:1019" ph="..." />
-            <marker date="1541036804486" expanded="true" signature="2118:2120" ph="..." />
-            <marker date="1541036804486" expanded="true" signature="3049:3332" ph="..." />
-            <marker date="1541036804486" expanded="true" signature="4624:4713" ph="..." />
-            <marker date="1541036804486" expanded="true" signature="5560:5614" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/process.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1011">
-          <caret line="153" column="34" lean-forward="true" selection-start-line="153" selection-start-column="34" selection-end-line="153" selection-end-column="34" />
-          <folding>
-            <element signature="e#2778#3414#1" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/formats/skansk.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1439">
-          <caret line="412" column="12" selection-start-line="412" selection-start-column="12" selection-end-line="412" selection-end-column="12" />
-          <folding>
-            <element signature="e#2147#3051#0" />
-            <element signature="e#4903#5860#0" />
-            <element signature="e#5902#6400#0" />
-            <element signature="e#6484#8101#0" />
-            <element signature="e#6479#6495#1" expanded="true" />
-            <element signature="e#6631#7809#0" />
-            <element signature="e#8320#11640#0" />
-            <element signature="e#10694#11976#0" />
-            <element signature="e#12019#12417#0" />
-            <marker date="1541293648718" expanded="true" signature="471:643" ph="..." />
-            <marker date="1541293648718" expanded="true" signature="822:825" ph="..." />
-            <marker date="1541293648718" expanded="true" signature="2271:2272" ph="..." />
-            <marker date="1541293648718" expanded="true" signature="3480:16846" ph="..." />
-            <marker date="1541293648718" expanded="true" signature="4996:5015" ph="..." />
-            <marker date="1541293648718" expanded="true" signature="12395:12409" ph="..." />
-            <marker date="1541293648718" expanded="true" signature="13267:13301" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/structs/node.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1562">
-          <caret line="71" column="32" lean-forward="true" selection-start-line="71" selection-start-column="32" selection-end-line="71" selection-end-column="32" />
-          <folding>
-            <element signature="e#2533#2593#1" expanded="true" />
+            <marker date="1541389259745" expanded="true" signature="1914:1916" ph="..." />
+            <marker date="1541389259745" expanded="true" signature="3586:4048" ph="..." />
+            <marker date="1541389259745" expanded="true" signature="4385:6548" ph="..." />
+            <marker date="1541389259745" expanded="true" signature="6382:6548" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/geo.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1588">
-          <caret line="639" column="12" lean-forward="true" selection-start-line="639" selection-start-column="12" selection-end-line="639" selection-end-column="12" />
+        <state relative-caret-position="12562">
+          <caret line="649" column="23" selection-start-line="649" selection-start-column="16" selection-end-line="649" selection-end-column="23" />
           <folding>
             <element signature="e#0#86#1" expanded="true" />
-            <element signature="e#8811#18322#0" />
-            <marker date="1541294039868" expanded="true" signature="3695:3704" ph="..." />
-            <marker date="1541294039868" expanded="true" signature="6189:6195" ph="..." />
-            <marker date="1541294039868" expanded="true" signature="6226:6382" ph="..." />
-            <marker date="1541294039868" expanded="true" signature="10782:10787" ph="..." />
+            <marker date="1541356607097" expanded="true" signature="3695:3704" ph="..." />
+            <marker date="1541356607097" expanded="true" signature="6189:6195" ph="..." />
+            <marker date="1541356607097" expanded="true" signature="6226:6382" ph="..." />
+            <marker date="1541356607097" expanded="true" signature="10782:10787" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/.gitignore">
+    <entry file="file://$PROJECT_DIR$/src/ui/visual.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="110">
-          <caret line="5" column="19" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
+        <state relative-caret-position="97">
+          <caret line="198" column="23" selection-start-line="198" selection-start-column="23" selection-end-line="198" selection-end-column="23" />
+          <folding>
+            <marker date="1541359067410" expanded="true" signature="328:365" ph="..." />
+            <marker date="1541359067410" expanded="true" signature="952:1019" ph="..." />
+            <marker date="1541359067410" expanded="true" signature="2118:2120" ph="..." />
+            <marker date="1541359067410" expanded="true" signature="3081:3364" ph="..." />
+            <marker date="1541359067410" expanded="true" signature="4656:4745" ph="..." />
+            <marker date="1541359067410" expanded="true" signature="5592:5646" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/propogate/propagators.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1242">
+          <caret line="46" lean-forward="true" selection-start-line="46" selection-end-line="46" />
+          <folding>
+            <element signature="e#3251#3422#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/structs/edge.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="980">
+          <caret line="104" column="35" lean-forward="true" selection-start-line="104" selection-start-column="35" selection-end-line="104" selection-end-column="35" />
+          <folding>
+            <marker date="1541461624786" expanded="true" signature="2454:2459" ph="..." />
+            <marker date="1541461624786" expanded="true" signature="2590:2596" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/formats/skansk.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="350">
+          <caret line="313" column="21" selection-start-line="313" selection-start-column="21" selection-end-line="313" selection-end-column="21" />
+          <folding>
+            <marker date="1541463659223" expanded="true" signature="482:654" ph="..." />
+            <marker date="1541463659223" expanded="true" signature="833:836" ph="..." />
+            <marker date="1541463659223" expanded="true" signature="2282:2283" ph="..." />
+            <marker date="1541463659223" expanded="true" signature="3492:16560" ph="..." />
+            <marker date="1541463659223" expanded="true" signature="4985:4986" ph="..." />
+            <marker date="1541463659223" expanded="true" signature="12576:12601" ph="..." />
+            <marker date="1541463659223" expanded="true" signature="13459:13493" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/structs/node.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="828">
+          <caret line="97" lean-forward="true" selection-start-line="97" selection-end-line="97" />
+          <folding>
+            <marker date="1541462157370" expanded="true" signature="1940:2448" ph="..." />
+            <marker date="1541462157370" expanded="true" signature="3413:3422" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/process.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="392">
+          <caret line="26" lean-forward="true" selection-start-line="26" selection-end-line="26" />
         </state>
       </provider>
     </entry>

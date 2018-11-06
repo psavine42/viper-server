@@ -71,6 +71,7 @@ def viz_line(c1, c2, handle=None, thickness=0.05, **kwargs):
 
 
 def viz_point(xyz, handle='points/', radius=0.2, **kwargs):
+    _clear_if(handle, **kwargs)
     px = primitives.Sphere(radius=radius, center=xyz)
     _export_and_set(px, handle, mat=_with_material(**kwargs))
 

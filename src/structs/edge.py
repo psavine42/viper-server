@@ -105,6 +105,11 @@ class Edge(GraphData):
         self._src.remove_edge(self)
         self._tgt, self._src = None, None
 
+    def delete(self):
+        self._tgt.remove_edge(self)
+        self._src.remove_edge(self)
+        self._tgt, self._src = None, None
+
     def __str__(self):
         st = '<Edge>:{}, {}'.format(self.geom, self.tmps)
         return st

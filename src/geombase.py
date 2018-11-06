@@ -245,13 +245,7 @@ def is_cylinder(mesh_solid, tol=0.01):
     return False
 
 
-def is_cylinder_sides(mesh_solid, tol=0.01):
-    """
-
-    :param mesh_solid:
-    :param tol:
-    :return:
-    """
+def as_cylinder(mesh_solid, tol=0.01):
     lines = mesh_solid.as_obb.skeleton.lines
     lens = [np.round(x.length, 2) for x in lines]
     cnt = Counter(lens)
@@ -264,7 +258,20 @@ def is_cylinder_sides(mesh_solid, tol=0.01):
         cvx_vol = mesh_solid.convex_hull.volume
         dif_vol = np.abs(cvx_vol - cylinder_vol) / cvx_vol
         if dif_vol < tol:
-            return True
+            return lines[lens.index(h)]
+
+    return None
+
+
+def is_cylinder_sides(mesh_solid, tol=0.01):
+    """
+
+    :param mesh_solid:
+    :param tol:
+    :return:
+    """
+    if as_cylinder(mesh_solid, tol=tol) is not None:
+        return True
     return False
 
 

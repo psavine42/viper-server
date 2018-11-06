@@ -580,55 +580,63 @@ class Movement(object):
         Plane   Plane   Rotate plane1 to be parallel to plane2, then translate to superimpose
         """
         # self.dr is always defined
-        self.q = None # rotation quaternion, if applicable
-        if isinstance(from_obj,Point) and isinstance(to_obj,Point):
+        self.q = None
+        # rotation quaternion, if applicable
+        if isinstance(from_obj, Point) and isinstance(to_obj, Point):
             self.dr = to_obj.r - from_obj.r
-        elif isinstance(from_obj, Point) and isinstance(to_obj,Line):
+
+        elif isinstance(from_obj, Point) and isinstance(to_obj, Line):
             # move point to closest point on line
             p = from_obj.projected_on(to_obj)
             self.dr = p.r - from_obj.r
-        elif isinstance(from_obj, Point) and isinstance(to_obj,Plane):
+
+        elif isinstance(from_obj, Point) and isinstance(to_obj, Plane):
             # move point to nearest point in plane
             p = from_obj.projected_on(to_obj)
             self.dr = p.r - from_obj.r
-        elif isinstance(from_obj,Line) and isinstance(to_obj, Point):
-            Movement.__init__(self,to_obj,from_obj)
+
+        elif isinstance(from_obj, Line) and isinstance(to_obj, Point):
+            Movement.__init__(self, to_obj, from_obj)
             self.dr = -self.dr
-        elif isinstance(from_obj,Line) and isinstance(to_obj,Line):
+
+        elif isinstance(from_obj, Line) and isinstance(to_obj, Line):
             # superimpose lines
-            if dot(from_obj.t,to_obj.t) < 1 - 1e-14:
-                self.q = qrotor(cross(from_obj.t,to_obj.t),
-                                math.acos(dot(from_obj.t,to_obj.t)))
-                self.dr = orthogonalized_to(to_obj.r - qrotate(self.q,from_obj.r),to_obj.t)
+            if dot(from_obj.t, to_obj.t) < 1 - 1e-14:
+                self.q = qrotor(cross(from_obj.t, to_obj.t),
+                                math.acos(dot(from_obj.t, to_obj.t)))
+                self.dr = orthogonalized_to(to_obj.r - qrotate(self.q, from_obj.r),to_obj.t)
             else:
                 #TODO test this
-                self.dr = orthogonalized_to(to_obj.r - from_obj.r,to_obj.t)
-        elif isinstance(from_obj,Line) and isinstance(to_obj,Plane):
+                self.dr = orthogonalized_to(to_obj.r - from_obj.r, to_obj.t)
+
+        elif isinstance(from_obj, Line) and isinstance(to_obj, Plane):
             # move line onto its projection in the plane
             lp = from_obj.projected_on(to_obj)
-            Movement.__init__(self,from_obj,lp)
-        elif isinstance(from_obj,Plane) and isinstance(to_obj,Point):
+            Movement.__init__(self, from_obj, lp)
+
+        elif isinstance(from_obj, Plane) and isinstance(to_obj, Point):
             # inverse of Point to plane motion
-            Movement.__init__(self,to_obj,from_obj)
+            Movement.__init__(self, to_obj, from_obj)
             self.q = qconf(self.q)
-            self.dr = -qrotate(self.q,self.dr)
-        elif isinstance(from_obj,Plane) and isinstance(to_obj,Line):
+            self.dr = -qrotate(self.q, self.dr)
+
+        elif isinstance(from_obj, Plane) and isinstance(to_obj, Line):
             # inverse of Point to line motion
-            Movement.__init__(self,to_obj,from_obj)
+            Movement.__init__(self, to_obj, from_obj)
             self.q = qconf(self.q)
-            self.dr = -qrotate(self.q,self.dr)
-        elif isinstance(from_obj,Plane) and isinstance(to_obj,Plane):
+            self.dr = -qrotate(self.q, self.dr)
+
+        elif isinstance(from_obj, Plane) and isinstance(to_obj, Plane):
             # superimpose planes
-            if dot(from_obj.n,to_obj.n) < 1 - 1e-14:
+            if dot(from_obj.n, to_obj.n) < 1 - 1e-14:
                 # not parallel
                 l = from_obj.intersection(to_obj) # axis of rotation
-
-                self.q = qrotor(l.t, math.acos(dot(from_obj.n,to_obj.n)))
+                self.q = qrotor(l.t, math.acos(dot(from_obj.n, to_obj.n)))
                 # l.r lies along the axis of rotation
                 self.dr = l.r - qrotate(self.q, l.r)
             else:
                 # parallel
-                self.dr = parallel_to(to_obj.r - from_obj.r,to_obj.n)
+                self.dr = parallel_to(to_obj.r - from_obj.r, to_obj.n)
         else:
             raise TypeError("Invalid arguments to Movement(%s,%s)"%(from_obj.__class__.__name__,to_obj.__class__.__name__))
 
@@ -638,34 +646,37 @@ class Movement(object):
         p' = rotate(p) + dr
         """
         r = p.r
-        if self.q != None:
-            r = qrotate(self.q,r)
-        if self.dr != None:
+        if self.q is not None:
+            r = qrotate(self.q, r)
+        if self.dr is not None:
             r = r + self.dr
         return Point(r)
 
     def inverse(self):
         minc = copy.deepcopy(self)
-        if self.q != None:
+        if self.q is not None:
             minc.q = qconj(self.q)
-            minc.dr = -qrotate(minc.q,self.dr)
+            minc.dr = -qrotate(minc.q, self.dr)
         else:
             minc.dr = -self.dr
         return minc
 
     def composed(self, first_movement):
         mnew = copy.deepcopy(self)
-        if self.q != None:
-            if first_movement.q != None:
-                mnew.q = qmul(self.q,first_movement.q)
-            mnew.dr = self.dr + qrotate(self.q,first_movement.dr)
-        elif first_movement.q != None:
+        if self.q is not None:
+            if first_movement.q is not None:
+                mnew.q = qmul(self.q, first_movement.q)
+            mnew.dr = self.dr + qrotate(self.q, first_movement.dr)
+        elif first_movement.q is not None:
             mnew.q = first_movement.q
             mnew.dr = self.dr + first_movement.dr
         return mnew
 
     def is_pure_translation(self):
-        return self.q == None or abs(self.q[0] - 1) < 1e-12
+        return self.q is None or abs(self.q[0] - 1) < 1e-12
+
+    def apply(self, many):
+        pass
 
 
 

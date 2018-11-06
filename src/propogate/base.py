@@ -153,7 +153,7 @@ class QueuePropogator(object):
         return self.on_default(node, **kwargs)
 
     def on_default(self, node, **kwargs):
-        print(node)
+        # print(node)
         return node
 
     def is_terminal(self, node, **kwargs):
@@ -181,14 +181,14 @@ class QueuePropogator(object):
         return res
 
     def __call__(self, node, num_iter=None, debug=False, **kwargs):
-        # print(node)
+
         q = self.on_first(node, **kwargs)
         cntr = 0
-        # print(q)
+
         while q:
 
             el = q.pop(0)
-            # print(el.id)
+
             if el.id in self.seen:
                 continue
 
@@ -208,6 +208,14 @@ class QueuePropogator(object):
         print(self.__class__.__name__, 'seen nodes : ', cntr)
         return self.on_complete(node)
 
+
+class FunctionQ(QueuePropogator):
+    def __init__(self, fn):
+        super(FunctionQ, self).__init__()
+        self.fn = fn
+
+    def on_default(self, node, **kwargs):
+        return self.fn(node)
 
 
 class Propogator(BasePropogator):

@@ -22,6 +22,13 @@ class RedrawPropogator(BasePropogator):
 
 
 class Annotator(RecProporgator):
+    """
+        if node has propoerty k in mapping, then
+        write value v to node with ket self.var
+    Usages:
+        rp.Annotator('$create', mapping={'dHead': 1, }),
+
+    """
     def __init__(self, var, mapping={}, **kwargs):
         self.mapping = mapping
         super(Annotator, self).__init__(name=var, **kwargs)

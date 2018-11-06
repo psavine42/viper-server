@@ -8,7 +8,7 @@ importlib.reload(gp)
 from scipy.spatial import kdtree, distance
 import src.propogate.base
 importlib.reload(src.propogate.base)
-from src.propogate.base import QueuePropogator
+from src.propogate.base import QueuePropogator, FunctionQ
 import itertools
 from collections import Counter
 from lib.geo import Point, Line
@@ -109,6 +109,7 @@ def direction_best(edge1, edge2):
     return np.min([crv1.direction - crv2.direction,
                    -1*crv1.direction, crv2.direction] )
 
+
 def similar_dir_abs(edge1, edge2, tol=1e-2):
     crv1 = edge1.curve if isinstance(edge1, Edge) else edge1
     crv2 = edge2.curve if isinstance(edge2, Edge) else edge2
@@ -168,8 +169,6 @@ def node_with_id(nd, eid):
         if n.id == eid:
             return n
 
-#def is_vertical(edge):
-#    edge.curve.
 
 # ------------------------------------------------
 class DetectElbows(QueuePropogator):
@@ -198,22 +197,6 @@ class DetectElbows(QueuePropogator):
             edge.write('is_elbow', True)
             self._res.add(edge.id)
         return edge
-
-
-class VisIdsProp(QueuePropogator):
-    def __init__(self, ids, handle='', **kwargs):
-        super(VisIdsProp, self).__init__(edges=True, bkwd=True, **kwargs)
-        if self.edges is True:
-            import src.ui.visual
-            self._viz = src.ui.visual.viz_line
-        self._data = ids
-        self.handle = handle
-
-    def on_default(self, nodedge, **kwargs):
-        if nodedge.id in self._data:
-            g1, g2 = nodedge.geom
-            self._viz(g1, g2, handle=self.handle + '/' + str(nodedge.id))
-        return nodedge
 
 
 class DetectTriangles(QueuePropogator):
@@ -256,7 +239,8 @@ class DetectTriangles(QueuePropogator):
                 if e1 is not None and _is_pipe(e1) is False:
                     res = srcs + [e1]
                     if self._build is True:
-                        node = resolve_triangle(res, node)
+                        node = resolve_triangle(res)
+                        self._res.add(tuple(sorted([x.id for x in res])))
                     else:
                         for x in res:
                             x.write('is_triangle', [x.id for x in res])
@@ -279,105 +263,121 @@ def resolve_triangle(tri_edges, node=None):
     :return:
     """
     tri_ids = {x.id for x in tri_edges}
+    tri_nodes, outer_edges = [], []
+    outer_edge_ids = set()
+
     # 1). tri_nodes = get all triangle nodes
-    tri_nodes = []
+    # 2). get edges which are connected to triangle and are pipes
     for n in tri_edges:
         if n.source not in tri_nodes:
             tri_nodes.append(n.source)
+            for en in n.source.neighbors(fwd=True, bkwd=True, edges=True):
+                if en.id not in tri_ids and en.id not in outer_edge_ids:
+                    outer_edges.append(en)
+                    outer_edge_ids.add(en.id)
         if n.target not in tri_nodes:
             tri_nodes.append(n.target)
+            for en in n.target.neighbors(fwd=True, bkwd=True, edges=True):
+                if en.id not in tri_ids and en.id not in outer_edge_ids:
+                    outer_edges.append(en)
+                    outer_edge_ids.add(en.id)
 
-    assert len(tri_nodes) == 3
-
-    # 2). get edges which are connected to triangle and are pipes
-    other_edge, other_out = [], []
-    for e in tri_edges:
-        itms = gp.unique_edge_neighs(e)
-        for x in itms:
-            if x.id not in tri_ids:
-                other_edge.append(x)
-                if x.target not in tri_nodes and x.target not in other_out:
-                    other_out.append([x.target, x])
-
-    assert len(other_out) == 2
-    assert len(other_edge) == 3
-    edge_same_dir, best = [], 1e6
+    outer_edges_same_dir, best = [], 1e6
     # 3). COL = the two with closest direction
-    for e1, e2 in itertools.combinations(other_edge, 2):
-        l1, l2 = e1.curve, e2.curve
-        siml = direction_best(l1, l2)
+    for e1, e2 in itertools.combinations(outer_edges, 2):
+        siml = np.abs(direction_best(e1.curve, e2.curve))
         if siml < best:
-            edge_same_dir, best = [e1, e2], siml
+            outer_edges_same_dir, best = [e1, e2], siml
 
     # 3). the tri_edge between edges with same direction
     this_edge = None
-    nds = itertools.chain(*[[x.source, x.target] for x in edge_same_dir])
+    nds = itertools.chain(*[[x.source, x.target] for x in outer_edges_same_dir])
     for n1, n2 in itertools.combinations(nds, 2):
         this_edge = edge_between(n1, n2)
-        if this_edge is not None:
+        if this_edge is not None and this_edge.id in tri_ids:
             break
 
     # 4). pt = edge between COL.centroid
-    curve = this_edge.curve.points_np()
     tn1, tn2 = this_edge.source, this_edge.target
     # node which is not on the main line
     other_node = [n for n in tri_nodes if n.id not in [tn1.id, tn2.id]]
     tap_point = geo.Point(other_node[0].geom)
-    line = geo.Line(geo.Point(curve[0]), geo.Point(curve[1]))
+    line = geo.Line(geo.Point(tn1.geom), geo.Point(tn2.geom))
 
     # 5) Get new point location
     new_pnt = tap_point.projected_on(line)
     if node is None:
-        # since this graph is already directed
-        # each triangle will have a common source, from which 2 tri_edges originate
-        nodes_ = [x.source for x in tri_edges]
-        cnt = Counter([x.geom for x in nodes_]).most_common()[0][0]
-        node = [x for x in nodes_ if x.geom == cnt][0]
+        # source node - must be closest to origin than any other
+        order = [x.get('order') for x in tri_nodes]
+        node = tri_nodes[int(np.argmin(order))]
 
+    # update the node
     node.update_geom(tuplify(new_pnt.numpy))
+    node.write('is_tee', True)
 
     # line from other_node to new point - check if it should be a new drop
-    tap_edge = [x for x in other_edge if x not in other_edge][0]
+    tap_edge = [x for x in outer_edges if x not in outer_edges_same_dir][0]
+
+    # disconnect everything
+    for edge in tri_edges:
+        node.remove_edge(edge)
+        et, es = edge.target, edge.source
+        if et is not None:
+            et.remove_edge(edge)
+        if es is not None:
+            es.remove_edge(edge)
 
     # 6). connect tri_nodes to it
-    for othr_nd, o_edge in other_out:
-        # node.connect_to(othr_nd, is_pipe=True, radius=o_edge.get('radius'))
+    for o_edge in outer_edges:
         line_arg = dict(is_pipe=True, radius=o_edge.get('radius'))
-        if o_edge == tap_edge:
-            line_to_tap = Line(new_pnt, tap_point)
-            tap_dir = tap_edge.curve.points_np()
-            similar_dir = similar_dir_abs(line_to_tap, tap_edge.curve, 1e-3)
-            xy_close = np.allclose(tap_dir[0:2], new_pnt.numpy[0:2])
-            if xy_close and similar_dir:
+        osrc, otgt = o_edge.source, o_edge.target
+        if osrc == node or otgt == node:
+            continue
+
+        osrc.remove_edge(o_edge)
+        otgt.remove_edge(o_edge)
+        if new_pnt.distance_to(Point(osrc.geom)) < new_pnt.distance_to(Point(otgt.geom)):
+            tgt_cls, tgt_far = osrc, otgt
+        else:
+            tgt_cls, tgt_far = otgt, osrc
+
+        if o_edge.id == tap_edge.id:
+            line_to_tap = Line(new_pnt, Point(tgt_cls.geom))
+            tap_dir = tap_edge.source.as_np
+            dir_similar = similar_dir_abs(line_to_tap, tap_edge.curve, 1e-3)
+            xy_close = np.allclose(tap_dir[0:2], new_pnt.numpy[0:2], 1e-2)
+
+            # tgt_cls.connect_to(tgt_far, **line_arg)
+            # node.connect_to(tgt_cls, **line_arg)
+
+            if xy_close and dir_similar:
                 # line pointing to projection point, just extend
-                node.connect_to(othr_nd, **line_arg)
+                # node.connect_to(tgt_far, **line_arg)
+                tgt_cls.connect_to(tgt_far, **line_arg)
+                node.connect_to(tgt_cls, **line_arg)
+            elif xy_close and not dir_similar:
+                # direction is not similar. use closest node to
+                tgt_cls.connect_to(tgt_far, **line_arg)
+                node.connect_to(tgt_cls, **line_arg)
 
-            elif xy_close and not similar_dir:
-                # direction is not similar.
-                # use closest node to
-                nd = o_edge.other_end(othr_nd)
-                node.connect_to(nd, **line_arg)
-
-            elif not xy_close and similar_dir:
+            elif not xy_close and dir_similar:
                 # horizantal tap - extend is fine
-                node.connect_to(othr_nd, **line_arg)
+                node.connect_to(tgt_far, **line_arg)
 
             else:
                 # neither is close. Just make new line
-                nd = o_edge.other_end(othr_nd)
-                node.connect_to(nd, **line_arg)
-        else:
-            node.connect_to(othr_nd, **line_arg)
+                tgt_cls.connect_to(tgt_far, **line_arg)
+                node.connect_to(tgt_far, **line_arg)
 
-    for edge in tri_edges:
-        node.remove_edge(edge)
-        edge.target.deref()
-    node.write('is_tee', True)
+        else:
+            node.connect_to(tgt_far, **line_arg)
+
     return node
 
 
 def kdconnect(kdindexes):
     """"""
+    return
 
 
 def resolve_elbow(edge):
@@ -519,22 +519,111 @@ class EdgeDirectorQ(QueuePropogator):
         return node
 
 
+def rotator(orienting_edge):
+    rnt = np.array([orienting_edge.source.geom,
+                    orienting_edge.target.geom])
+
+    rnt[:, -1] = 0 # no z
+
+    norm = Line(Point(rnt[1]), Point(rnt[0]))
+    base = Line(Point(0., 0., 0.), Point(1., 0, 0))
+    m = geo.Movement(norm, base)
+    return m
+
+
+class MovementQ(QueuePropogator):
+    """ apply movement to each Node Point """
+    def __init__(self, m):
+        super(MovementQ, self).__init__()
+        self.M = m
+
+    def on_default(self, node, **kwargs):
+        pt = Point(node.geom)
+        pt2 = self.M.on_point(pt)
+        node.geom = tuplify(pt2.numpy)
+        return node
+
+
+class Rotator(MovementQ):
+    def __init__(self, angle):
+        l1 = Line(Point(0, 0, 0), Point(1, 0, 0))
+        l2 = Line(Point(0, 0, 0), Point(np.cos(angle), np.sin(angle), 0))
+        M = geo.Movement(l2, l1)
+        MovementQ.__init__(self, M)
+
+
+class Annotator(QueuePropogator):
+    """
+        if node has propoerty k in mapping, then
+        write value v to node with ket self.var
+    Usages:
+        rp.Annotator('$create', mapping={'dHead': 1, }),
+
+    """
+    def __init__(self, var, mapping={}, **kwargs):
+        self.mapping = mapping
+        self.var = var
+        self._pos = 0
+        super(Annotator, self).__init__(**kwargs)
+
+    def on_default(self, node, **kwargs):
+        for k, v in self.mapping.items():
+            if node.get(k, None) is True:
+                self._pos += 1
+                node.write(self.var, v)
+            return node
+
+
+# -------------------------------
+def resolve_heads(root_node, spr_points, tol=1.):
+    kdprop = KDTreeIndex()
+    _ = kdprop(root_node)
+    data = np.array(kdprop._data)
+
+    for six, spr in enumerate(spr_points):
+        cdist = distance.cdist([spr], data)[0]
+        if np.min(cdist) < tol:
+            best_ix = np.argmin(cdist)
+            nd = kdprop[best_ix]
+            nde = node_with_id(root_node, nd.id)
+            connect_heads2(nde)
+
+
 def connect_heads2(node):
     neighs = node.neighbors(fwd=True, bkwd=True, edges=True)
     if node.get('has_head') is True:
-        return node, False
+        return # node, False
 
-    elif len(neighs) == 1 and neighs[0].get('is_pipe') is True:
+    elif len(neighs) == 1:
         node.write('has_head', True)
-        return node, True
+        # node.write('end_head', True)
+        return # node, True
     elif len(neighs) == 2:
         for edge in neighs:
             if _is_pipe(edge) is False:
                 edge.write('has_head', True)
-                return node, True
-    return node, False
+                # rebuild ?
+                p1, p2 = edge.geom
+                center = Point(p1).midpoint_to(Point(p2))
+                new_main = edge.source
+
+                new_main.geom = tuplify(center.numpy)
+                new_main.remove_edge(edge)
+                new_main.write('has_head', True)
+
+                rem_node = edge.target
+                for s in rem_node.successors():
+                    new_main.connect_to(s)
+                rem_node.deref()
+                return
+                # remove
+                # return node, True
+    # return node, False
 
 
+
+
+# DEPR -------------------------------
 def connect_heads(node_dict,  sprinks):
     sdists = {i: 1e7 for i in range(sprinks.shape[0])}
     sbests = {i: None for i in range(sprinks.shape[0])}
@@ -555,47 +644,4 @@ def connect_heads(node_dict,  sprinks):
     return sdists, sbests
 
 
-# def nodes_to_kdtree(root_nodes, dim=2):
-#     if isinstance(root_nodes, Node):
-#         root_nodes = [root_nodes]
-#
-#     trees = []
-#     for root in root_nodes:
-#         seen = set()
-#         pts = []
-#         for n in root.__iter__(fwd=True, bkwd=True):
-#             if n.id not in seen:
-#                 seen.add(n.id)
-#                 pts.append(n.as_np[0:dim])
-#         trees.append(kdtree.KDTree(np.stack(pts)))
-#     # if isinstance(root_nodes, Node):
-#     #    root_nodes = [root_nodes]
-#     return trees
-#
-#
-# def trim_links(nodes, keepn=2):
-#     """
-#     trick is to walk forward
-#     :param nodes:
-#     :param keepn:
-#     :return:
-#     """
-#     for n in nodes:
-#         # nodes are immutable in this case - only edges can be removed
-#         all_edge = n.neighbors(True, True, True)
-#         keep = list(filter(lambda x: _is_pipe(x) is True, all_edge))
-#         base_directions = [x.curve.direction for x in keep]
-#
-#         edges = list(filter(lambda x: not _is_pipe(x), all_edge))
-#         # for e in edges:
-#             # for b in e.curve.direction
-#         if len(edges) > keepn:
-#             lengths = [e.curve.length for e in edges]
-#             # keepn SHORTEST edges
-#             remove = np.argsort(lengths)[:keepn].tolist()
-#             for ix in remove:
-#                 eg = edges[ix]
-#                 on = eg.other_end(n)
-#                 on.remove_edge(eg)
-#                 n.remove_edge(eg)
-#     return list(filter(lambda x: len(x.neighbors(True, True)) > 0, nodes))
+

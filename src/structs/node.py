@@ -72,9 +72,26 @@ class Node(GraphData):
     def remove_edge(self, edge):
         """ remove edge """
         if edge in self._sucs:
+            tgt = edge.target
             self._sucs.remove(edge)
         if edge in self._pred:
             self._pred.remove(edge)
+
+    def disconnect_from(self, node):
+        if isinstance(node, self.__class__):
+            edge = None
+            for e in self.successors(edges=True):
+                if e.target.id == node.id:
+                    edge = e
+                    break
+            for e in self.predecessors(edges=True):
+                if e.source.id == node.id:
+                    edge = e
+                    break
+            if edge is not None:
+                edge.delete()
+        elif isinstance(node, Edge):
+            self.remove_edge(node)
 
     def add_out_edge(self, edge):
         self._sucs.append(edge)
@@ -98,16 +115,23 @@ class Node(GraphData):
         else:
             return super(Node, self).get(v, d)
 
-    def deref(self):
+    def _remove(self, edge):
+        other = edge.other_end(self)
+        other.remove_edge(edge)
+        self.remove_edge(edge)
+        edge._tgt = None
+        edge._src = None
+
+    def deref(self, fwd=True, bkwd=True):
         """ remove all references to this node
             todo - both directions
         """
-        for edge in self.successors(edges=True):
-            other = edge.other_end(self)
-            other.remove_edge(edge)
-            self.remove_edge(edge)
-            edge._tgt = None
-            edge._src = None
+        if fwd is True:
+            for edge in self.successors(edges=True):
+                self._remove(edge)
+        if bkwd is True:
+            for edge in self.predecessors(edges=True):
+                self._remove(edge)
 
     @property
     def complete(self):

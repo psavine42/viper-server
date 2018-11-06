@@ -26,10 +26,81 @@ class SystemRequest(object):
         st = ''
 
 
+def finalize(root, prepare_fn):
+    """
+        Create List of geometry to be created in revit
 
-class RevitRecipe(object):
-    def __init__(self):
-        self.geom = []
+    :param root: node
+    :return:
+        ENDPOINTS OF PIPES
+        these are build first
+        geom = [
+            [x1, y1, z1, x2, y2, z2]
+
+            [10, 5, 0,   10, 0, 0] # [0, [0 , 1]]
+            [10, 0, 0,   5, 0, 0]  # [1, [0 , 1]]
+            [5,  0, 0,   5, 5, 0]  # [2, [0 , 1]]
+        ]
+
+        INDICES OF CONNECTORS TO CONNECT
+        inds = [
+            [ [ mepcurve_index, end_index ] x number of points to connect]
+
+            [[0, 1] , [1, 0] ]
+            [[1, 1] , [2, 0] ]
+        ]
+        syms = [
+            [ symbol_type, mepcurve_index, end_index ]
+        ]
+    """
+    geom, inds, syms = [], [], []
+    for node1 in root.__iter__():
+        for node2 in node1.successors():
+
+            suc_edge = node1.edge_to(node2)
+            line_ix = suc_edge.get('order')
+
+            next_sucs = node2.successors(edges=True)
+            is_last = len(next_sucs) == 0
+
+            # [x1, y1, z1, x2, y2, z2]
+            geom.append(prepare_fn(node1, node2, last=is_last))
+            symbol_type = node2.get('$create', None)
+            if not is_last:
+
+                # [ mepcurve_index, end_index ]
+                sub_inds = [line_ix, 1]
+                new_inds = []
+                has_similar = False
+                for p in next_sucs:
+                    """
+                    this is a hack for revit. 
+                    if there are more than two connectors, then they have to be connected in order:
+                        [conn1, conn2, branch], 
+
+                    where conn1 and conn2 are on pipes with same direction, 
+                    and branch has a different direction
+
+                    """
+                    if p.similar_direction(suc_edge) is True:
+                        has_similar = True
+                        new_inds.insert(0, 0)
+                        new_inds.insert(0, p.get('order'))
+                    else:
+                        new_inds += [p.get('order'), 0]
+
+                if has_similar is True:
+                    inds.append(sub_inds + new_inds)
+                else:
+                    inds.append(new_inds + sub_inds)
+            if symbol_type is not None:
+
+                # [ symbol_type, mepcurve_index, end_index]
+                # symbol_type = node2.get('$create', None)
+                syms.append([symbol_type, line_ix, 1])
+
+    return geom, inds, syms
+
 
 
 class SystemProcessorV3(object):
@@ -88,7 +159,7 @@ class SystemProcessorV3(object):
         :param last:
         :return:
         """
-        crv = MepCurve2d(start, end)
+        crv = MepCurve2d(start.geom, end.geom)
         if last is False:
             p1, p2 = crv.extend(self._shrink, self._shrink).points
         else:
@@ -100,76 +171,5 @@ class SystemProcessorV3(object):
         return vec
 
     def finalize(self, root):
-        """
-            Create List of geometry to be created in revit
-
-        :param root: node
-        :return:
-            ENDPOINTS OF PIPES
-            these are build first
-            geom = [
-                [x1, y1, z1, x2, y2, z2]
-
-                [10, 5, 0,   10, 0, 0] # [0, [0 , 1]]
-                [10, 0, 0,   5, 0, 0]  # [1, [0 , 1]]
-                [5,  0, 0,   5, 5, 0]  # [2, [0 , 1]]
-            ]
-
-            INDICES OF CONNECTORS TO CONNECT
-            inds = [
-                [ [ mepcurve_index, end_index ] x number of points to connect]
-
-                [[0, 1] , [1, 0] ]
-                [[1, 1] , [2, 0] ]
-            ]
-            syms = [
-                [ symbol_type, mepcurve_index, end_index ]
-            ]
-        """
-        geom, inds, syms = [], [], []
-        for node1 in root.__iter__():
-            for node2 in node1.successors():
-
-                suc_edge = node1.edge_to(node2)
-                line_ix = suc_edge.get('order')
-
-                next_sucs = node2.successors(edges=True)
-                is_last = len(next_sucs) == 0
-
-                # [x1, y1, z1, x2, y2, z2]
-                geom.append(self._prepare(node1.geom, node2.geom, last=is_last))
-                if not is_last:
-
-                    # [ mepcurve_index, end_index ]
-                    sub_inds = [line_ix, 1]
-                    new_inds = []
-                    has_similar = False
-                    for p in next_sucs:
-                        """
-                        this is a hack for revit. 
-                        if there are more than two connectors, then they have to be connected in order:
-                            [conn1, conn2, branch], 
-                        
-                        where conn1 and conn2 are on pipes with same direction, 
-                        and branch has a different direction
-                        
-                        """
-                        if p.similar_direction(suc_edge) is True:
-                            has_similar = True
-                            new_inds.insert(0, 0)
-                            new_inds.insert(0, p.get('order'))
-                        else:
-                            new_inds += [p.get('order'), 0]
-
-                    if has_similar is True:
-                        inds.append(sub_inds + new_inds)
-                    else:
-                        inds.append(new_inds + sub_inds)
-                elif node2.get('$create', None) is not None:
-
-                    # [ symbol_type, mepcurve_index, end_index]
-                    symbol_type = node2.get('$create', None)
-                    syms.append([symbol_type, line_ix, 1])
-
-        return geom, inds, syms
+        return finalize(root, self._prepare)
 

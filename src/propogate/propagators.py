@@ -1,5 +1,5 @@
 from src import geom
-from .base import BasePropogator, EdgePropogator
+from .base import BasePropogator, EdgePropogator, QueuePropogator
 
 import numpy as np
 
@@ -26,22 +26,23 @@ class DistanceFromSource(BasePropogator):
             return node, new_data
 
 
-class BuildOrder(BasePropogator):
+class BuildOrder(QueuePropogator):
     def __init__(self, name='order', **kwargs):
-        super(BuildOrder, self).__init__(name, **kwargs)
+        super(BuildOrder, self).__init__(**kwargs)
+        self.var = name
         self.node_cnt = 0
         self.edge_cnt = 0
         self.edge_seen = set()
 
-    def on_default(self, node, p, **kwargs):
-        node.write(self._var, self.node_cnt)
+    def on_default(self, node,  **kwargs):
+        node.write(self.var, self.node_cnt)
         self.node_cnt += 1
         for edge in node.successors(edges=True):
             if edge.id not in self.edge_seen:
                 self.edge_seen.add(edge.id)
                 edge.write(self.var, self.edge_cnt)
                 self.edge_cnt += 1
-        return node, p
+        return node
 
 
 class ElevationChange(BasePropogator):
