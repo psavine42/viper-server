@@ -3,6 +3,7 @@ import math, time, json
 from src import RenderNodeSystem, SystemFactory, RuleEngine, KB
 from src.rules import heursitics
 from src.geom import MepCurve2d
+from enum import Enum
 
 from src import viper
 
@@ -26,7 +27,53 @@ class SystemRequest(object):
         st = ''
 
 
-def finalize(root, prepare_fn):
+"""
+COMMANDS: 
+
+CreateElbow
+Connet + ConnectTo(connector1, connector2) -> pipe
+Elbow + ConnectTo(connector1, connector2) -> elbow
+CreateTee()
+CreateTap(pipe, connector)
+          ix     ix       
+          
+ pipe   conn1   conn2    
+[ix    [ 0 ,    1     ] ]
+[                       ]
+[                       ]
+
+
+"""
+
+
+class Recipe(object):
+    def trigger(self, node):
+        return node
+
+    def apply(self, edge):
+        pass
+
+
+class Pipe(Recipe):
+    def apply(self, edge):
+        line_ix = edge.get('order')
+        next_sucs = edge.target.successors(edges=True)
+        is_last = len(next_sucs) == 0
+        sub_inds = [line_ix, 1]
+        new_inds = []
+        return sub_inds + new_inds
+
+
+class Tap(Recipe):
+    def apply(self, edge):
+        """  """
+        line_ix = edge.get('order')
+        return geom, line_ix, syms
+
+
+
+
+def finalize(root, prepare_fn, dtol=0.1):
     """
         Create List of geometry to be created in revit
 
@@ -56,14 +103,13 @@ def finalize(root, prepare_fn):
     geom, inds, syms = [], [], []
     for node1 in root.__iter__():
         for node2 in node1.successors():
-
             suc_edge = node1.edge_to(node2)
             line_ix = suc_edge.get('order')
-
             next_sucs = node2.successors(edges=True)
             is_last = len(next_sucs) == 0
 
-            # [x1, y1, z1, x2, y2, z2]
+            # [ x1, y1, z1, x2, y2, z2 ]
+
             geom.append(prepare_fn(node1, node2, last=is_last))
             symbol_type = node2.get('$create', None)
             if not is_last:
@@ -72,7 +118,7 @@ def finalize(root, prepare_fn):
                 sub_inds = [line_ix, 1]
                 new_inds = []
                 has_similar = False
-                for p in next_sucs:
+                for p_edge in next_sucs:
                     """
                     this is a hack for revit. 
                     if there are more than two connectors, then they have to be connected in order:
@@ -82,25 +128,23 @@ def finalize(root, prepare_fn):
                     and branch has a different direction
 
                     """
-                    if p.similar_direction(suc_edge) is True:
+                    if p_edge.similar_direction(suc_edge) is True:
                         has_similar = True
                         new_inds.insert(0, 0)
-                        new_inds.insert(0, p.get('order'))
+                        new_inds.insert(0, p_edge.get('order'))
                     else:
-                        new_inds += [p.get('order'), 0]
+                        new_inds += [p_edge.get('order'), 0]
 
                 if has_similar is True:
                     inds.append(sub_inds + new_inds)
                 else:
                     inds.append(new_inds + sub_inds)
+
             if symbol_type is not None:
 
                 # [ symbol_type, mepcurve_index, end_index]
-                # symbol_type = node2.get('$create', None)
                 syms.append([symbol_type, line_ix, 1])
-
     return geom, inds, syms
-
 
 
 class SystemProcessorV3(object):

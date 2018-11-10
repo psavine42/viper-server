@@ -6,6 +6,8 @@ from .edge import Edge
 from .base import GraphData
 
 
+
+
 class Node(GraphData):
     __slots__ = ['_pred', '_sucs', '_geom', '_cond', '_done']
 
@@ -46,22 +48,28 @@ class Node(GraphData):
     def as_point(self):
         return Point(self.geom)
 
-    def predecessors(self, edges=False):
+    def predecessors(self, edges=False, both=False):
         if edges is True:
             return self._pred
-        return [x.source for x in self._pred]
+        elif both is True:
+            return [(x, x.source) for x in self._pred]
+        else:
+            return [x.source for x in self._pred]
 
-    def successors(self, edges=False):
+    def successors(self, edges=False, both=False):
         if edges is True:
             return self._sucs
-        return [x.target for x in self._sucs]
+        elif both is True:
+            return [(x, x.target) for x in self._sucs]
+        else:
+            return [x.target for x in self._sucs]
 
-    def neighbors(self, edges=False, fwd=True, bkwd=True):
+    def neighbors(self, edges=False, fwd=True, bkwd=True, both=False):
         res = []
         if fwd is True:
-            res = self.successors(edges=edges)
+            res = self.successors(edges=edges, both=both)
         if bkwd is True:
-            return res + self.predecessors(edges=edges)
+            return res + self.predecessors(edges=edges, both=both)
         return res
 
     # mutation -------------------------------------------
@@ -72,7 +80,7 @@ class Node(GraphData):
     def remove_edge(self, edge):
         """ remove edge """
         if edge in self._sucs:
-            tgt = edge.target
+            # tgt = edge.target
             self._sucs.remove(edge)
         if edge in self._pred:
             self._pred.remove(edge)

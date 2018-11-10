@@ -224,20 +224,71 @@ def viz_edges(edges, handle='nodes', **kwargs):
             seen.add(e.id)
             g1, g2 = e.geom
             pipe = str(e.get('is_pipe', None))
-            viz_line(g1, g2, handle=as_path(handle, pipe, e.id), **kwargs)
+            r = e.get('radius', 0.05) / 2
+            viz_line(g1, g2, handle=as_path(handle, pipe, e.id), thickness=r, **kwargs)
 
 
 def viz_iter(node, handle='nodes', **kwargs):
     _clear_if(handle, **kwargs)
     seen = set()
-    # counter = 0
     for n in node.__iter__(fwd=True, bkwd=True):
         for neigh in n.neighbors(fwd=True, bkwd=True, edges=True):
-            # this = tuple(sorted(list(neigh.geom)))
             if neigh.id not in seen:
                 seen.add(neigh.id)
                 g1, g2 = neigh.geom
                 pipe = str(neigh.get('is_pipe', None))
-                viz_line(g1, g2, handle=as_path(handle, pipe, neigh.id), **kwargs)
-                # counter += 1
+                r = neigh.get('radius') if neigh.get('radius') is not None else 0.01
+                viz_line(g1, g2, handle=as_path(handle, pipe, neigh.id), thickness=r,  **kwargs)
+
+
+def viz_edge_dir(edge, handle='edge', radius=0.02, t=0.005, **kwargs):
+    crv = edge.curve
+    crv = crv.extend(end=-(2*radius + t*3)).points_np()
+    viz_line(*crv, handle=as_path(handle, edge.id, 'line'), thickness=t)
+    viz_point(crv[1], handle=as_path(handle, edge.id, 'end'), radius=radius)
+
+
+def viz_edge_geo(edge, handle, **kwargs):
+    g1, g2 = edge.geom
+    r = edge.get('radius') if edge.get('radius') is not None else 0.01
+    viz_line(g1, g2, handle=as_path(handle, edge.id), thickness=r, **kwargs)
+
+
+def viz_order(node, handle='nodes', **kwargs):
+    _clear_if(handle, **kwargs)
+    for n in node.__iter__(fwd=True):
+        for neigh in n.successors(edges=True):
+            # if neigh.id not in seen:
+            # seen.add(neigh.id)
+            viz_edge_dir(neigh, handle=handle)
+
+
+def viz_heirarchical(root_node, handle, **kwargs):
+    _clear_if(handle, **kwargs)
+    # path = 0
+    q = [ (root_node, [0]) ]
+    while q:
+        node, path_ix = q.pop(0)
+        sucs = node.successors(both=True)
+        if len(sucs) >= 1:
+            suc_edge, suc_node = sucs[-1]
+            pth = path_ix + ['data']
+            viz_edge_geo(suc_edge, handle=as_path(handle, *pth), **kwargs)
+            q.append((suc_node, path_ix))
+
+        if len(sucs) == 2:
+            suc_edge2, suc_node2 = sucs[0]
+            first = path_ix[0:-1] + [0]
+            last = path_ix[-1] + 1
+
+            pth = first + [last, 'data']
+            viz_edge_geo(suc_edge2, handle=as_path(handle, *pth), **kwargs)
+            q.append((suc_node2, first + [last]))
+        else:
+            continue
+
+
+
+def delete(k):
+    VIZ[k].delete()
 

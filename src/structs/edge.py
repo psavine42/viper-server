@@ -54,7 +54,7 @@ class Edge(GraphData):
 
         newnode.add_in_edge(self)
         self._tgt = newnode
-        edge = newnode.connect_to(prev_target)
+        edge = newnode.connect_to(prev_target, **kwargs)
         return edge
 
     def reconnect(self, node):
@@ -101,13 +101,17 @@ class Edge(GraphData):
         return self.curve.length
 
     def __del__(self):
-        self._tgt.remove_edge(self)
-        self._src.remove_edge(self)
+        if self._tgt is not None:
+            self._tgt.remove_edge(self)
+        if self._src is not None:
+            self._src.remove_edge(self)
         self._tgt, self._src = None, None
 
     def delete(self):
-        self._tgt.remove_edge(self)
-        self._src.remove_edge(self)
+        if self._tgt is not None:
+            self._tgt.remove_edge(self)
+        if self._src is not None:
+            self._src.remove_edge(self)
         self._tgt, self._src = None, None
 
     def __str__(self):

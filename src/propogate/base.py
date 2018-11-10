@@ -133,16 +133,31 @@ class UndirectedEdgeProp(BasePropogator):
 
 
 class QueuePropogator(object):
-    def __init__(self,  fwd=True, bkwd=False, edges=False, **kwargs):
+    """
+    dfs: if True will take from start of queue, resulting in dfs
+    otherwise will use end of queue for bfs
+    """
+    def __init__(self,
+                 fwd=True,
+                 dfs=True,
+                 bkwd=False,
+                 edges=False,
+                 **kwargs):
+        self._pop_end = 0 if dfs is True else -1
         self.fwd = fwd
         self.bkwd = bkwd
         self.edges = edges
         self.seen = set()
+        self.q = []
         self._res = []
 
     @property
     def result(self):
         return self._res
+
+    def reset(self):
+        self.seen = set()
+        self._res = []
 
     def on_first(self, node, **kwargs):
         if not isinstance(node, list):
@@ -153,7 +168,13 @@ class QueuePropogator(object):
         return self.on_default(node, **kwargs)
 
     def on_default(self, node, **kwargs):
-        # print(node)
+        """
+        operation to apply to each node or edge.
+        should return same type as input
+        :param node:
+        :param kwargs:
+        :return: node
+        """
         return node
 
     def is_terminal(self, node, **kwargs):
@@ -166,6 +187,11 @@ class QueuePropogator(object):
         return node
 
     def on_next(self, node_or_edge):
+        """
+        specify elements to queue next
+        :param node_or_edge:
+        :return:
+        """
         res = []
         if self.fwd is True:
             if self.edges is True:
@@ -181,14 +207,19 @@ class QueuePropogator(object):
         return res
 
     def __call__(self, node, num_iter=None, debug=False, **kwargs):
+        """
 
-        q = self.on_first(node, **kwargs)
+        :param node:
+        :param num_iter: if not None, only run on num_iter elements
+        :param debug:
+        :param kwargs:
+        :return:
+        """
+        self.q = self.on_first(node, **kwargs)
         cntr = 0
+        while self.q:
 
-        while q:
-
-            el = q.pop(0)
-
+            el = self.q.pop(self._pop_end)
             if el.id in self.seen:
                 continue
 
@@ -200,13 +231,19 @@ class QueuePropogator(object):
                 el = self.on_default(el,  **kwargs)
 
             for next_el in self.on_next(el):
-                q.append(next_el)
+                # if next_el not in q:
+                self.q.append(next_el)
 
             cntr += 1
             if num_iter is not None and cntr > num_iter:
                 break
         print(self.__class__.__name__, 'seen nodes : ', cntr)
         return self.on_complete(node)
+
+    def __repr__(self):
+        st = self.__class__.__name__
+        st += ': edge {}, fwd {} , bkwd {}'.format(self.edges, self.fwd, self.bkwd)
+        return st
 
 
 class FunctionQ(QueuePropogator):

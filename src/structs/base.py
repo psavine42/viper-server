@@ -51,7 +51,7 @@ class GraphData(object):
     def update(self, k, v):
         self._data[k] = v
 
-    def write(self, k, v):
+    def write(self, k, v, **kwargs):
         if k in self._cells.keys():
             self._cells[k].add_contents(v)
         else:

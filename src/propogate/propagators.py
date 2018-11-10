@@ -27,6 +27,10 @@ class DistanceFromSource(BasePropogator):
 
 
 class BuildOrder(QueuePropogator):
+    """
+    Writes the build order to each node and edge.
+    The build order is used to index revit Builds
+    """
     def __init__(self, name='order', **kwargs):
         super(BuildOrder, self).__init__(**kwargs)
         self.var = name
@@ -59,6 +63,22 @@ class ElevationChange(BasePropogator):
         new_geom = geom.add_coord(node.geom, z=elevation_delta)
         node.update_geom(new_geom)
         return node, elevation_delta
+
+
+class Where(QueuePropogator):
+    """ Searches the graph for first node which condition(node) == True.
+        if the search is complete without the condition
+        being met, return None
+    """
+    def __init__(self, condition, **kwargs):
+        super(Where, self).__init__(**kwargs)
+        self.fn = condition
+
+    def is_terminal(self, node, **kwargs):
+        return self.fn(node, **kwargs)
+
+    def on_complete(self, node):
+        return None
 
 
 class DistanceFromEnd(BasePropogator):
@@ -138,48 +158,48 @@ class FuncPropogator(BasePropogator):
 
 
 # ---------------------------------------------------------------
-class EdgeDirector(BasePropogator):
-    """ Creates direction for each edge"""
+class EdgeDirector(QueuePropogator):
+    """ Creates direction for each edge
+        Input is a node attached to a undrirected graph, which
+        should become directed starting from that node
+    """
     def __init__(self,  **kwargs):
-        super(EdgeDirector, self).__init__(name=None, **kwargs)
-        self.seen = set()
+        super(EdgeDirector, self).__init__(**kwargs)
 
-    def on_default(self, node, _, **kwargs):
-        if node.id not in self.seen:
-            self.seen.add(node.id)
-            for pred in node.predecessors():
-                if pred.id not in self.seen:
-                    edge = pred.edge_to(node)
-                    edge.reverse()
-        return node, _
+    def on_default(self, node, **kwargs):
+        for pred in node.predecessors():
+            if pred.id not in self.seen:
+                edge = pred.edge_to(node)
+                edge.reverse()
+        return node
 
 
-class GraphTrim(BasePropogator):
+class GraphTrim(QueuePropogator):
+    """
+    If two edges have same direction, merge them
+    """
     def __init__(self,  **kwargs):
         super(GraphTrim, self).__init__(name=None, **kwargs)
-        self.seen = set()
 
-    def on_default(self, node, _, **kwargs):
-        if node.id not in self.seen:
-            self.seen.add(node.id)
-            sucs = node.successors(edges=True)
-            pred = node.predecessors(edges=True)
-            if len(sucs) == 1 and len(pred) == 1:
-                suc = sucs[0]
-                prd = pred[0]
-                crv1 = geom.MepCurve2d(*prd.geom)
-                crv2 = geom.MepCurve2d(*suc.geom)
-                if np.allclose(crv1.direction, crv2.direction):
-                    cur_src = prd.source
-                    new_tgt = suc.target
-                    cur_src.connect_to(new_tgt)
-                    node.remove_edge(suc)
-                    node.remove_edge(prd)
-                    cur_src.remove_edge(prd)
-                    new_tgt.remove_edge(suc)
-                    return cur_src, _
-
-        return node, _
+    def on_default(self, node, tol=0.001, **kwargs):
+        # if node.id not in self.seen:
+        #     self.seen.add(node.id)
+        sucs = node.successors(edges=True)
+        pred = node.predecessors(edges=True)
+        if len(sucs) == 1 and len(pred) == 1:
+            suc, prd = sucs[0], pred[0]
+            crv1 = geom.MepCurve2d(*prd.geom)
+            crv2 = geom.MepCurve2d(*suc.geom)
+            if np.allclose(crv1.direction, crv2.direction, atol=tol):
+                cur_src = prd.source
+                new_tgt = suc.target
+                cur_src.connect_to(new_tgt, **suc.tmps)
+                node.remove_edge(suc)
+                node.remove_edge(prd)
+                cur_src.remove_edge(prd)
+                new_tgt.remove_edge(suc)
+                return cur_src
+        return node
 
 
 class Chain(object):

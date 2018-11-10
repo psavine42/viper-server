@@ -8,6 +8,7 @@ from trimesh import Trimesh
 from src.geomType import GeomType
 from shapely import ops
 import  shapely.geometry as sg
+
 from shapely.geometry import MultiPolygon, LineString, Point, MultiLineString, Polygon
 from copy import deepcopy
 from itertools import chain
@@ -825,6 +826,15 @@ class MepCurve2d(CadInterface, LineString):
     def numpy(self):
         p1, p2 = list(self.coords)
         return np.array([p1, p2])
+
+    @property
+    def line(self):
+        pts = lib.geo.Line(*map(lib.geo.Point, self.points))
+        return pts
+
+    @property
+    def length(self):
+        return self.line.length
 
     def points_np(self):
         p1, p2 = list(self.coords)
