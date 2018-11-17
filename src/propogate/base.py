@@ -141,12 +141,14 @@ class QueuePropogator(object):
                  fwd=True,
                  dfs=True,
                  bkwd=False,
+                 both=False,
                  edges=False,
                  **kwargs):
         self._pop_end = 0 if dfs is True else -1
         self.fwd = fwd
         self.bkwd = bkwd
         self.edges = edges
+        self._both = both
         self.seen = set()
         self.q = []
         self._res = []
@@ -194,12 +196,18 @@ class QueuePropogator(object):
         """
         res = []
         if self.fwd is True:
-            if self.edges is True:
+            if self._both is True:
+                edge, tgt = node_or_edge
+                res += tgt.successors(both=True)
+            elif self.edges is True:
                 res += node_or_edge.target.successors(edges=True)
             else:
                 res += node_or_edge.successors()
         if self.bkwd is True:
-            if self.edges is True:
+            if self._both is True:
+                edge, src = node_or_edge
+                res += src.predecessors(both=True)
+            elif self.edges is True:
                 res += node_or_edge.source.predecessors(edges=True)
             else:
                 res += node_or_edge.predecessors()
@@ -247,8 +255,8 @@ class QueuePropogator(object):
 
 
 class FunctionQ(QueuePropogator):
-    def __init__(self, fn):
-        super(FunctionQ, self).__init__()
+    def __init__(self, fn, **kwargs):
+        super(FunctionQ, self).__init__(**kwargs)
         self.fn = fn
 
     def on_default(self, node, **kwargs):

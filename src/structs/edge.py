@@ -90,6 +90,8 @@ class Edge(GraphData):
         return self
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self._src.__eq__(other._src) \
                and self._tgt.__eq__(other._tgt)
 

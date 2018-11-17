@@ -71,8 +71,6 @@ class Tap(Recipe):
         return geom, line_ix, syms
 
 
-
-
 def finalize(root, prepare_fn, dtol=0.1):
     """
         Create List of geometry to be created in revit
@@ -145,6 +143,10 @@ def finalize(root, prepare_fn, dtol=0.1):
                 # [ symbol_type, mepcurve_index, end_index]
                 syms.append([symbol_type, line_ix, 1])
     return geom, inds, syms
+
+
+
+
 
 
 class SystemProcessorV3(object):

@@ -231,8 +231,8 @@ def viz_edges(edges, handle='nodes', **kwargs):
 def viz_iter(node, handle='nodes', **kwargs):
     _clear_if(handle, **kwargs)
     seen = set()
-    for n in node.__iter__(fwd=True, bkwd=True):
-        for neigh in n.neighbors(fwd=True, bkwd=True, edges=True):
+    for n in node.__iter__():
+        for neigh in n.neighbors(fwd=True, edges=True):
             if neigh.id not in seen:
                 seen.add(neigh.id)
                 g1, g2 = neigh.geom

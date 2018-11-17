@@ -1,11 +1,7 @@
-
-from copy import deepcopy
 from shapely.geometry import Point
 import numpy as np
 from .edge import Edge
 from .base import GraphData
-
-
 
 
 class Node(GraphData):
@@ -48,21 +44,32 @@ class Node(GraphData):
     def as_point(self):
         return Point(self.geom)
 
-    def predecessors(self, edges=False, both=False):
+    def predecessors(self, edges=False, both=False, ix=None):
         if edges is True:
-            return self._pred
+            res = self._pred
         elif both is True:
-            return [(x, x.source) for x in self._pred]
+            res = [(x, x.source) for x in self._pred]
         else:
-            return [x.source for x in self._pred]
+            res = [x.source for x in self._pred]
+        if ix is None:
+            return res
+        else:
+            return res[ix]
 
-    def successors(self, edges=False, both=False):
+    def successors(self, edges=False, both=False, ix=None):
         if edges is True:
-            return self._sucs
+            # [ Edge, ... ]
+            res = self._sucs
         elif both is True:
-            return [(x, x.target) for x in self._sucs]
+            # [ (Edge, Node), ... ]
+            res = [(x, x.target) for x in self._sucs]
         else:
-            return [x.target for x in self._sucs]
+            # [ Node, ... ]
+            res = [x.target for x in self._sucs]
+        if ix is None:
+            return res
+        else:
+            return res[ix]
 
     def neighbors(self, edges=False, fwd=True, bkwd=True, both=False):
         res = []

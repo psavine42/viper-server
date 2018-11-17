@@ -2,24 +2,27 @@ import numpy as np
 import lib.geo as geo
 import src.structs
 import src.propogate as gp
-
+import math, src.geom
 import importlib
 importlib.reload(gp)
 from scipy.spatial import kdtree, distance
 import src.propogate.base
 importlib.reload(src.propogate.base)
-from src.propogate.base import QueuePropogator, FunctionQ
+from src.propogate.base import QueuePropogator
 import itertools
-from collections import Counter
 from lib.geo import Point, Line
-_ngh_arg = dict(fwd=True, bkwd=True, edges=True)
+
 importlib.reload(src.structs)
 from src.structs import Node, Edge
-import src.ui.visual as viz
 import src.structs.node_utils as gutil
+from enum import Enum
+
+
+_ngh_arg = dict(fwd=True, bkwd=True, edges=True)
 
 
 def connect_by_pairs(cylinders, factor=0.3):
+    """ returns points and loose connectivity """
     pts_ind = np.concatenate([x.line.numpy for x in cylinders])
     tree = kdtree.KDTree(pts_ind)
     pairs = tree.query_pairs(r=factor)
@@ -31,7 +34,7 @@ def _other_ix(ix):
     return ix + 1 if ix % 2 == 0 else ix - 1
 
 
-def process_index(node_dict, pts_index, ix, cylinder):
+def _process_index(node_dict, pts_index, ix, cylinder):
     if ix not in node_dict:
         node_dict[ix] = Node(gutil.tuplify(pts_index[ix]), pt_index=ix)
     other = _other_ix(ix)
@@ -42,10 +45,17 @@ def process_index(node_dict, pts_index, ix, cylinder):
 
 
 def make_node_dict(pairs, pts_index, cylinders):
+    """
+
+    :param pairs:
+    :param pts_index:
+    :param cylinders:
+    :return:
+    """
     node_dict = dict()
     for ix11, ix21 in pairs:
-        node_dict = process_index(node_dict, pts_index, ix11, cylinders[ix11//2])
-        node_dict = process_index(node_dict, pts_index, ix21, cylinders[ix21//2])
+        node_dict = _process_index(node_dict, pts_index, ix11, cylinders[ix11//2])
+        node_dict = _process_index(node_dict, pts_index, ix21, cylinders[ix21//2])
 
         # determine which ends of pipes to connect.
         # any 2 pipes can only connect once
@@ -64,7 +74,15 @@ def make_node_dict(pairs, pts_index, cylinders):
     return node_dict
 
 
-def connected_components(nodes):
+def connected_components(nodes, min_size=None):
+    """
+    Given a list of nodes finds the graphs that are within that list
+
+    Returns
+    --------
+    list(Node) of graphs larger than min_size.
+    if min_size is None, returns all subgraphs
+    """
     notseen = {n.id for n in nodes}
     seen = set()
     cur = 0
@@ -83,24 +101,28 @@ def connected_components(nodes):
         else:
             break
 
-    final_comps = list(filter(lambda x: x[1] > 2, comps))
+    if min_size is not None:
+        comps = list(filter(lambda x: x[1] > min_size, comps))
     seen2 = set()
     comps_start = []
     final_list = []
-    for k, v in final_comps:
+    for k, v in comps:
         comps_start.append(len(final_list))
         for n in nodes[k].__iter__(fwd=True, bkwd=True):
             if n.id not in seen2:
                 seen2.add(n.id)
                 final_list.append(n)
-    return final_list, comps_start
+
+    comps_starts = np.asarray(comps_start)
+    root_nodes = [final_list[i] for i in comps_starts]
+    return root_nodes
 
 
 def direction_best(edge1, edge2):
     crv1 = edge1.curve if isinstance(edge1, Edge) else edge1
     crv2 = edge2.curve if isinstance(edge2, Edge) else edge2
     return np.min([crv1.direction - crv2.direction,
-                   -1*crv1.direction, crv2.direction] )
+                   -1*crv1.direction, crv2.direction])
 
 
 def similar_dir_abs(edge1, edge2, tol=1e-2):
@@ -150,18 +172,8 @@ def neighbor_pipes(edge, n):
     return [x for _, x in zip(range(n), edges_iter(edge))]
 
 
-def edge_between(n1, n2):
-    e1 = n1.edge_to(n2)
-    if e1 is not None:
-        return e1
-    return n2.edge_to(n1)
-
-
-def node_with_id(nd, eid):
-    for n in nd.__iter__(fwd=True, bkwd=True):
-        if n.id == eid:
-            return n
-
+_REVIT_ANGLE = 89.0
+_ELBOW_COUPLING_TOL = 5.0
 
 # SKS specific --------------------------------------------------------------------
 class DetectElbows(QueuePropogator):
@@ -188,9 +200,123 @@ class DetectElbows(QueuePropogator):
             return edge
         if not similar_dir_abs(tgts[0], srcs[0]):
             edge.write('is_elbow', True)
-
             self._res.add(edge.id)
+
         return edge
+
+
+class ResolveElbowEdge(QueuePropogator):
+    def __init__(self):
+        QueuePropogator.__init__(self, fwd=True, edges=True)
+
+    def on_default(self, edge, **kwargs):
+        """
+        [src]
+        ======+
+              \ [edge]
+              +
+             || [tgt_edge]
+              +
+              \ [neigh1]
+              +============ [pipe]
+
+        [src]
+        ======+
+              \ [edge]
+              +
+             || [tgt_edge]
+              +============ [pipe]
+        """
+        if edge.get('is_elbow', None) is not True:
+            return edge
+        src = edge.source
+        tgt = edge.target
+        srcs = [x for x in src.neighbors(fwd=False, edges=True, bkwd=True) ]
+        tgts = [x for x in tgt.neighbors(edges=True) ]
+        if len(srcs) != 1 or len(tgts) != 1:
+            return edge
+        src_edge, tgt_edge = srcs[0], tgts[0]
+        angle = gutil.norm_angle(src_edge, tgt_edge)
+        if angle > _REVIT_ANGLE:
+            # elbow - try to abstract
+            if tgt_edge.target.nsucs == 1:
+                neigh1 = tgt_edge.target.neighbors(edges=True)[0]
+                if not _is_pipe(neigh1):
+                    pass
+            pass
+        return edge
+
+
+def resolve_elbow_edge(edge):
+    """
+    [src]
+    ======+
+          \ [edge]
+          +
+         || [tgt_edge]
+          +
+          \ [neigh1]
+          +============ [pipe]
+
+    [src]
+    ======+
+          \ [edge]
+          +
+         || [tgt_edge]
+          +============ [pipe]
+    """
+    if edge.get('is_elbow', None) is not True:
+        return edge
+    src = edge.source
+    tgt = edge.target
+    srcs = [x for x in src.neighbors(fwd=False, edges=True, bkwd=True)]
+    tgts = [x for x in tgt.neighbors(edges=True)]
+    if len(srcs) != 1 or len(tgts) != 1:
+        return edge
+    src_edge, tgt_edge = srcs[0], tgts[0]
+    angle = gutil.norm_angle(src_edge, tgt_edge)
+    if angle > _REVIT_ANGLE:
+        # elbow - try to abstract
+        if tgt_edge.target.nsucs == 1:
+            neigh1 = tgt_edge.target.neighbors(edges=True)[0]
+            if not _is_pipe(neigh1):
+                pass
+        pass
+
+
+def _label_one_one(node, tol=_ELBOW_COUPLING_TOL):
+    pred = node.predecessors(edges=True)[0]
+    succ = node.successors(edges=True)[0]
+    angle = gutil.norm_angle(pred, succ)
+    if angle > tol:
+        node.write('is_elbow', True)
+    else:
+        node.write('is_coupling', True)
+    return node
+
+
+def _label_one_two(node, tol=_ELBOW_COUPLING_TOL):
+    pred = node.predecessors(edges=True)[0]
+    suc1, suc2 = node.successors(edges=True)
+    angle1 = gutil.norm_angle(pred, suc1)
+    angle2 = gutil.norm_angle(pred, suc2)
+    if angle1 < angle2:
+        suc2.write('tap_edge', True)
+    else:
+        suc1.write('tap_edge', True)
+    return node
+
+
+class LabelConnector(QueuePropogator):
+    def __init__(self):
+        super(LabelConnector, self).__init__()
+
+    def on_default(self, node, tol=_ELBOW_COUPLING_TOL, **kwargs):
+        if node.npred == 1 and node.nsucs == 1:
+            return _label_one_one(node, tol)
+        elif node.npred == 1 and node.nsucs == 2:
+            return _label_one_two(node, tol)
+        return node
 
 
 class DetectTriangles(QueuePropogator):
@@ -231,7 +357,7 @@ class DetectTriangles(QueuePropogator):
                     if x.id != edge.id and _is_pipe(x) is False]
             if len(srcs) == 2:
                 ng1, ng2 = [x.other_end(node) for x in srcs]
-                e1 = edge_between(ng1, ng2)
+                e1 = gutil.edge_between(ng1, ng2)
 
                 if e1 is not None and _is_pipe(e1) is False:
                     items = [node, ng1, ng2]
@@ -247,7 +373,8 @@ class DetectTriangles(QueuePropogator):
         return node
 
 
-def remove_short(node, lim=1 / (2* 12), **kwargs):
+# functions ------------------------------------
+def remove_short(node, lim=1/24, **kwargs):
     """
            [suc_edge]   [edg]
     --> (node)->(suc_tgt)---->(nexts)
@@ -260,25 +387,71 @@ def remove_short(node, lim=1 / (2* 12), **kwargs):
     for (suc_edge, suc_tgt) in sucs:
         if suc_edge.curve.length < lim:
             nexts = suc_tgt.successors(both=True)
-
             for (edg, nd) in nexts:
-                # suc_tgt.disconnect_from(nd)
                 edg.delete()
-                node.connect_to(nd, **data)
-
-            # node.disconnect_from(suc_tgt)
+                node.connect_to(nd, **{**data, **edg.tmps})
             suc_edge.delete()
     return node
 
 
-def add_ups(node, h=0.5, **kwargs):
+def add_ups(node, h=0.1, **kwargs):
     if node.get('has_head', None) is True:
         nd = np.array(list(node.geom))
         nd[-1] += h
         new = Node(gutil.tuplify(nd), is_head=True)
-        node.connect_to(new, remove_head=True)
+        node.connect_to(new, remove_head=True, tap_edge=True)
         node.write('has_head', False)
+        node.write('head_tee', True)
     return node
+
+
+vert = lambda x, tol: 1 - np.abs(gutil.slope(x)) < tol
+
+
+def is_vertical(edge, tol=0.005):
+    if _is_pipe(edge) is True:
+        slope = 1 - np.abs(gutil.slope(edge))
+        if slope < tol:
+            edge.write('is_vertical', True)
+    return edge
+
+
+def align_vertical(edge, tol=0.01):
+    if _is_pipe(edge) is True:
+        slope = 1 - np.abs(gutil.slope(edge))
+        if slope < tol:
+            src = edge.source.as_np
+            tgt = edge.target.as_np
+            tgt[0:2] = src[0:2]
+            edge.target.geom = gutil.tuplify(tgt)
+    return edge
+
+
+def align_tap(edge, TOL=_REVIT_ANGLE):
+    """
+
+    :param edge:
+    :param TOL:HARDCODED REVIT TOLERANCE. found empirically
+     working: [89.22843573127959, 89.91857497862868, 89.22841701199027, 89.93205755597465, 89.2284428900399]
+     not working: [88.89186491151713, 88.84667449752507, 88.89179632626258, 88.8919083924853, 88.89182755566546]
+    :return:
+    """
+    if edge.get('tap_edge', None) is not True or edge.source.npred != 1:
+        return edge
+    egde_in = edge.source.predecessors(edges=True)[0]
+    angle = math.degrees( egde_in.curve.line.angle_to(edge.curve.line))
+
+    if angle < TOL:
+        print('adjusting ', edge.id)
+        src = edge.source.as_np
+        tgt = edge.target.as_np
+        tgt[0:2] = src[0:2]
+        edge.target.geom = gutil.tuplify(tgt)
+        return edge
+    return edge
+
+
+# def resolve_triangle1(tri_nodes, tri_edges):
 
 
 def resolve_triangle3(tri_nodes):
@@ -298,7 +471,7 @@ def resolve_triangle3(tri_nodes):
     outer_edge_ids = set()
     tri_edges, outer_edges, outer_dirs = [], [], []
     for n1, n2 in itertools.combinations(tri_nodes, 2):
-        edge = edge_between(n1, n2)
+        edge = gutil.edge_between(n1, n2)
         if edge not in tri_edges:
             tri_edges.append(edge)
 
@@ -328,7 +501,6 @@ def resolve_triangle3(tri_nodes):
     order = [x.get('order') for x in tri_nodes]
     node = tri_nodes[int(np.argmin(order))]
 
-    # print(tap_node.id == node.id, main2.id == node.id, main1.id == node.id)
     for edge in tri_edges:
         edge.delete()
 
@@ -343,15 +515,17 @@ def resolve_triangle3(tri_nodes):
 
 def tap_is_input(node_in_tap, node_out1, node_out2, new_pnt):
     tap_edge, pred_node = node_in_tap.predecessors(both=True)[0]
+    pt_tuple = gutil.tuplify(new_pnt.numpy)
 
     if tap_edge.curve.line.length < 1.:
-        node_in_tap.geom = gutil.tuplify(new_pnt.numpy)
+        node_in_tap.geom = pt_tuple
         node_in = node_in_tap
         tap_edge.write('tap_edge', True)
     else:
-        node_in = Node(gutil.tuplify(new_pnt.numpy), tee_index=0, tee_mid=True)
+        node_in = Node(pt_tuple, tee_index=0, tee_mid=True)
         node_in_tap.connect_to(node_in, **tap_edge.tmps, tap_edge=True)
 
+    node_in.write('is_tee', True)
     for n in [node_out1, node_out2]:
         o_edge, o_succ = n.successors(both=True)[0]
         node_in.connect_to(o_succ, **o_edge.tmps)
@@ -361,6 +535,7 @@ def tap_is_input(node_in_tap, node_out1, node_out2, new_pnt):
 
 def tap_is_other(node_in, tap_node, node_out2, new_pnt):
     node_in.geom = gutil.tuplify(new_pnt.numpy)
+    node_in.write('is_tee', True)
     tap_edge, tap_succ = tap_node.successors(both=True)[0]
 
     if tap_edge.curve.line.length < 1.:
@@ -394,109 +569,7 @@ def resolve_elbow(edge):
     return
 
 
-# Propogators - todo move ------------------------------------------------------
-class KDTreeIndex(QueuePropogator):
-    def __init__(self, **kwargs):
-        super(KDTreeIndex, self).__init__(**kwargs)
-        self._data = []
-        self._index = []
-        self._root = None
-
-    def get_node(self, nid):
-        return node_with_id(self._root, nid)
-
-    def __getitem__(self, index):
-        node_id = self._index[index]
-        return self.get_node(node_id)
-
-    def nearest_point(self, other):
-        """"""
-        pass
-
-    # waling interface ----------------
-    def on_first(self, node, **kwargs):
-        self._root = node
-        if not isinstance(node, list):
-            return [node]
-        return node
-
-    def on_default(self, node, **kwargs):
-        self._data.append(list(node.geom))
-        self._index.append(node.id)
-        return node
-
-    def on_complete(self, node):
-        self._res = kdtree.KDTree(np.array(self._data))
-        return self._res
-
-
-class SpatialRoot(QueuePropogator):
-    """
-    Find a node that has only one connected neighbor
-    and is at a geometric extent of the graph
-    """
-    def __init__(self):
-        super(SpatialRoot, self).__init__(bkwd=True)
-        self.dist = 0
-        self.best = None
-
-    def on_default(self, node, **kwargs):
-        if len(node.neighbors(fwd=True, bkwd=True)) == 1:
-            mag = np.sum(np.array(node.geom) ** 2) ** 0.5
-            if mag > self.dist:
-                self.dist = mag
-                self.best = node.id
-        return node
-
-
-class NearestTo(SpatialRoot):
-
-    def __init__(self, loc, exclude=None):
-        super(NearestTo, self).__init__()
-        self._loc = np.array(loc)
-        self._exclude = exclude
-
-    def on_default(self, node, **kwargs):
-        if node.id in self._exclude:
-            return node
-        mag = np.sum( (np.array(node.geom) - self._loc) ** 2) ** 0.5
-        if mag > self.dist:
-            self.dist = mag
-            self.best = node.id
-        return node
-
-
-class GatherTags(QueuePropogator):
-    def __init__(self):
-        super(GatherTags, self).__init__()
-        self._res = set()
-
-    def on_default(self, node, **kwargs):
-        self._res.update(node.tmps.keys())
-        return node
-
-
-class MovementQ(QueuePropogator):
-    """ apply movement to each Node Point """
-    def __init__(self, m):
-        super(MovementQ, self).__init__()
-        self.M = m
-
-    def on_default(self, node, **kwargs):
-        pt = Point(node.geom)
-        pt2 = self.M.on_point(pt)
-        node.geom = gutil.tuplify(pt2.numpy)
-        return node
-
-
-class Rotator(MovementQ):
-    def __init__(self, angle):
-        l1 = Line(Point(0, 0, 0), Point(1, 0, 0))
-        l2 = Line(Point(0, 0, 0), Point(np.cos(angle), np.sin(angle), 0))
-        M = geo.Movement(l2, l1)
-        MovementQ.__init__(self, M)
-
-
+# sks testing specific ---------------------------------------------------
 class Annotator(QueuePropogator):
     """
         if node has propoerty k in mapping, then
@@ -519,7 +592,6 @@ class Annotator(QueuePropogator):
         return node
 
 
-# sks testing specific ---------------------------------------------------
 class RemoveSubLoops(QueuePropogator):
     def __init__(self, **kwargs):
         super(RemoveSubLoops, self).__init__(fwd=True, **kwargs)
@@ -544,7 +616,7 @@ class RemoveSubLoops(QueuePropogator):
                 continue
 
             elif this_nd.id in halt and depth_cnt > 0:
-                edge = edge_between(node, this_nd)
+                edge = gutil.edge_between(node, this_nd)
                 if edge is None:
                     print('err', this_nd)
 
@@ -589,80 +661,187 @@ class LongestPath(QueuePropogator):
             return sucs
 
 
+class TeeHelper(QueuePropogator):
+    """
+    Revit blows at slopes.
+    therefore, if there is a tee, we have to make sure that the slopes
+    of the mains are the same.
 
-# BUILDING GRAPHS  -----------------------------------------------------------
-def pipe_instruction(edge, last):
-    import math, src.geom
-    Shrink = -0.05
+    1) check main slopes
+    2) if they are not within tolerance:
+        2.1) create short pipe with same slope
 
-    start, end = edge.source, edge.target
-    radius = edge.get('radius')
-    if radius is None:
-        radius = 1.
-    crv = src.geom.MepCurve2d(start.geom, end.geom)
-    if last is False:
-        p1, p2 = crv.extend(Shrink, Shrink).points
-    else:
-        p1, p2 = crv.extend(Shrink, 0).points
+    """
+    def __init__(self, **kwargs):
+        QueuePropogator.__init__(self)
 
-    if math.isnan(p1[0]):
-        print(start, end, p1, p2)
-    # instruction_code, index
-    vec = list(p1) + list(p2) + [radius]
-    return vec
+    def on_default(self, node, **kwargs):
+        preds = node.predecessors(edges=True)
+        succs = node.successors(edges=True)
+        if node.get('is_tee', None) is True:
+            tap_index = node.get('tap_index', None)
+
+        return node
 
 
-def connect_instruction(edge, last):
-    import math, src.geom
-    Shrink = -0.02
+class GatherTags(QueuePropogator):
+    def __init__(self):
+        super(GatherTags, self).__init__()
+        self._res = set()
 
-    start, end = edge.source, edge.target
-    radius = edge.get('radius')
-    if radius is None:
-        radius = 1.
-    crv = src.geom.MepCurve2d(start.geom, end.geom)
-    if last is False:
-        p1, p2 = crv.extend(Shrink, Shrink).points
-    else:
-        p1, p2 = crv.extend(Shrink, 0).points
+    def on_default(self, node, **kwargs):
+        self._res.update(node.tmps.keys())
+        return node
 
-    if math.isnan(p1[0]):
-        print(start, end, p1, p2)
-    # instruction_code, index
-    vec = list(p1) + list(p2) + [radius]
-    return vec
+
+# BUILDING GRAPHS -----------------------------------------------
+import src.formats.revit
+importlib.reload(src.formats.revit)
+from src.formats.revit import Command, Cmds
+
+
+_revit_Family = {
+    'is_tee': 'Tee - Generic',
+    'is_elbow': 'Elbow - Generic',
+
+}
 
 
 class MakeInstructions(QueuePropogator):
     """
-        if node has propoerty k in mapping, then
-        write value v to node with ket self.var
-    Usages:
-        rp.Annotator('$create', mapping={'dHead': 1, }),
+    walker version of 'SystemProcesser'
+
+    instead of geom, returns a list of instructions.
+
+    in order to ensure that geometry exists building has separate
+    bookkeeping from iteration,
 
     """
-    def __init__(self, var, fn, state_fn, **kwargs):
-        self.var = var
-        self._cond = fn
-        self.count = 0
-        self._state = state_fn
-        self.instructions = []
-        super(MakeInstructions, self).__init__(**kwargs)
+    def __init__(self, **kwargs):
+        QueuePropogator.__init__(self, **kwargs)
+        self._built = set()
 
-    def on_default(self, edge, **kwargs):
-        # if self._cond(edge) is True and edge.id not in self.seen:
-        #    self.seen.add(edge.id)
-        #    edge.write(self.var, self.count)
-        #    self.count += 1
+    def reset(self):
+        self._res = []
+        self._built = set()
+        self.seen = set()
 
-        return edge
+    def add(self, cmd, *data, **kwargs):
+        if cmd == Cmds.Pipe and data[0].id in self._built:
+            return
+        else:
+            self._res += Command.create(cmd, *data, **kwargs)
+            for e in data:
+                # ensure geometries are built
+                if isinstance(e, Edge) and e.id not in self._built:
+                    self._built.add(e.id)
+
+    @staticmethod
+    def tee_commands(node):
+        preds = node.predecessors(edges=True)
+        succs = node.successors(edges=True)
+        pred = preds[0] if node.npred == 1 else None
+
+        if node.nsucs == 2 and node.npred == 1:
+            suc_edge1, suc_edge2 = succs
+
+            if suc_edge2.get('tap_edge', None) is True:
+                return pred, suc_edge1, suc_edge2
+
+            elif suc_edge1.get('tap_edge', None) is True:
+                return pred, suc_edge2, suc_edge1
+
+            elif pred.get('tap_edge', None) is True:
+                return suc_edge1, suc_edge2, pred
+        return None, None, None
+
+    def on_default(self, node, shrink=None, **kwargs):
+        """
+        Generate instructions and add them to
+
+        """
+        preds = node.predecessors(edges=True)
+        pred = preds[0] if node.npred == 1 else None
+
+        if node.get('head_tee', None) is True:
+            if node.nsucs == 2:
+                suc_edge1, suc_edge2 = node.successors(edges=True)
+                if suc_edge2.get('tap_edge', None) is True:
+                    main_out, tee_edge = suc_edge1, suc_edge2
+                elif suc_edge1.get('tap_edge', None) is True:
+                    main_out, tee_edge = suc_edge2, suc_edge1
+                else:
+                    return node
+
+                if pred is not None:
+                    # create successors
+                    self.add(Cmds.Pipe, pred, shrink=shrink)
+                    self.add(Cmds.Pipe, main_out, shrink=shrink)
+                    self.add(Cmds.Pipe, tee_edge, shrink=shrink)
+
+                    # connect tee, delete top, create on face
+                    self.add(Cmds.Tee, pred, main_out, tee_edge)
+                    # self.add(Cmds.Delete, tee_edge)
+                    self.add(Cmds.FamilyOnFace, tee_edge, 1, 0)
+                    # self.add(Cmds.FamilyOnFace, node, 2, 0)
+            return node
+
+        elif node.get('is_coupling', None) is True:
+            if pred is None or node.nsucs != 1:
+                return node
+            succ = node.successors(edges=True)[0]
+            self.add(Cmds.Pipe, succ)
+            self.add(Cmds.Coupling, pred, succ)
+            return node
+
+        elif node.get('is_tee', None) is True:
+            suc1, suc2 = node.successors(edges=True)
+            self.add(Cmds.Pipe, suc1, shrink=shrink)
+            self.add(Cmds.Pipe, suc2, shrink=shrink)
+            edgein, edgemain, edge_tap = self.tee_commands(node)
+            if edgein is None:
+                return node
+            # print(edgein.id, edgemain.id, edge_tap.id )
+            self.add(Cmds.Tee, edgein, edgemain, edge_tap)
+            return node
+
+        elif node.get('is_elbow', None) is True:
+            tgt = node.successors(edges=True)[0]
+
+            # add instruction for target pipe
+            # add instruction to create connection
+            self.add(Cmds.Pipe, tgt, shrink=shrink)
+            self.add(Cmds.Elbow, pred, tgt)
+            return node
+
+        # edge specific
+        for (edge, suc_node) in node.successors(both=True):
+
+            if edge.id in self._built:
+                continue
+
+            elif edge.get('is_pipe', None) is True:
+                # just making a pipe
+                self.add(Cmds.Pipe, edge, shrink=shrink)
+
+            elif edge.get('is_elbow', None) is True:
+                src = edge.source.predecessors(edges=True)[0]
+                tgt = edge.target.successors(edges=True)[0]
+                self.add(Cmds.Pipe, edge, shrink=shrink)
+                self.add(Cmds.Pipe, tgt, shrink=shrink)
+                self.add(Cmds.Pipe, tgt, shrink=shrink)
+                self.add(Cmds.Elbow, src, edge)
+                self.add(Cmds.Elbow, edge, tgt)
+
+        return node
+
+    def on_complete(self, node):
+        return self._res
 
 
 # ------------------------------------------------------------
-
-
 def resolve_heads(root_node, spr_points, tol=1.):
-    kdprop = KDTreeIndex()
+    kdprop = gp.KDTreeIndex()
     _ = kdprop(root_node)
     data = np.array(kdprop._data)
 
@@ -671,7 +850,7 @@ def resolve_heads(root_node, spr_points, tol=1.):
         if np.min(cdist) < tol:
             best_ix = np.argmin(cdist)
             nd = kdprop[best_ix]
-            nde = node_with_id(root_node, nd.id)
+            nde = gutil.node_with_id(root_node, nd.id)
             connect_heads2(nde)
     return kdprop
 
@@ -679,12 +858,12 @@ def resolve_heads(root_node, spr_points, tol=1.):
 def connect_heads2(node):
     neighs = node.neighbors(fwd=True, bkwd=True, edges=True)
     if node.get('has_head') is True:
-        return # node, False
+        return  # node, False
 
     elif len(neighs) == 1:
         node.write('has_head', True)
+        return  # node, True
 
-        return # node, True
     elif len(neighs) == 2:
         e1, e2 = neighs
         if _is_pipe(e1) is True and _is_pipe(e2) is False:
@@ -707,267 +886,4 @@ def connect_heads2(node):
             new_main.connect_to(s, **data)
         rem_node.deref()
         return
-
-
-
-# DEPR ------------------------------------------
-def connect_heads(node_dict,  sprinks):
-    sdists = {i: 1e7 for i in range(sprinks.shape[0])}
-    sbests = {i: None for i in range(sprinks.shape[0])}
-    seen = set()
-    for k, n in node_dict.items():
-        for neigh in n.neighbors(fwd=True, bkwd=True, edges=True):
-            g1, g2 = neigh.geom
-            this = tuple([g1, g2])
-            if this not in seen:
-                seen.add(this)
-                cp = geo.Point(g1).midpoint_to(geo.Point(g2)).numpy[:2]
-                ds = np.sqrt(np.sum((sprinks - cp) ** 2, axis=-1))
-                minix = np.argmin(ds)
-                minds = ds[minix]
-                if minds < sdists[minix]:
-                    sdists[minix] = minds
-                    sbests[minix] = neigh
-    return sdists, sbests
-
-
-
-
-def resolve_triangle2(tri_edges, innode=None):
-    """
-    this node will be moved to triangle center
-    1). tri_nodes = get all triangle nodes
-    2). get edges which are connected to triangle and are pipes
-    3). COL = the two with closest direction
-    3). the tri_edges
-    4). pt = edge between COL.centroid
-    5). move node to pt,
-    6). connect tri_nodes to it
-
-    :param tri_edges:
-    :return:
-    """
-    tri_ids = {x.id for x in tri_edges}
-    tri_nodes, outer_edges = [], []
-    outer_edge_ids = set()
-
-    # 1). tri_nodes = get all triangle nodes
-    # 2). get edges which are connected to triangle and are pipes
-    for n in tri_edges:
-        if n.source not in tri_nodes:
-            tri_nodes.append(n.source)
-            for en in n.source.neighbors(fwd=True, bkwd=True, edges=True):
-                if en.id not in tri_ids and en.id not in outer_edge_ids:
-                    outer_edges.append(en)
-                    outer_edge_ids.add(en.id)
-        if n.target not in tri_nodes:
-            tri_nodes.append(n.target)
-            for en in n.target.neighbors(fwd=True, bkwd=True, edges=True):
-                if en.id not in tri_ids and en.id not in outer_edge_ids:
-                    outer_edges.append(en)
-                    outer_edge_ids.add(en.id)
-
-    outer_edges_same_dir, best = [], 1e6
-    # 3). COL = the two with closest direction
-    for e1, e2 in itertools.combinations(outer_edges, 2):
-        siml = np.abs(direction_best(e1.curve, e2.curve))
-        if siml < best:
-            outer_edges_same_dir, best = [e1, e2], siml
-
-    # 3). the tri_edge between edges with same direction
-    this_edge = None
-    nds = itertools.chain(*[[x.source, x.target] for x in outer_edges_same_dir])
-    for n1, n2 in itertools.combinations(nds, 2):
-        this_edge = edge_between(n1, n2)
-        if this_edge is not None and this_edge.id in tri_ids:
-            break
-
-    _show = lambda x: [x.id, np.round(x.geom[-1], 3)]
-    assert len(tri_nodes) == 3, 'expected 3, got {}'.format(len(tri_nodes))
-    # 4). pt = edge between COL.centroid
-    # node which is not on the main line
-    _lshow = lambda x: [x.id, np.round(x.curve.direction, 3)]
-    main1, main2 = this_edge.source, this_edge.target
-    not_on_main = [n for n in tri_nodes if n.id not in [main1.id, main2.id]][0]
-
-    # print('zs:', *map(_show, [main1, not_on_main, main2]))
-    tap_point = geo.Point(not_on_main.geom)
-    line = geo.Line(geo.Point(main1.geom), geo.Point(main2.geom))
-
-    # 5) Get new point location
-    new_pnt = tap_point.projected_on(line)
-
-    # source node - must be closest to origin than any other
-    order = [x.get('order') for x in tri_nodes]
-    node = tri_nodes[int(np.argmin(order))]
-
-    # print(node.id, innode.id)
-
-    new_node = Node(gutil.tuplify(new_pnt.numpy), tee_index=0, tee_mid=True)
-    TIX = 1
-    node.connect_to(new_node, tee_index=1)
-    node.write('tee_index', 1)
-
-    node.predecessors()[0].write('tee_index', -1)
-    for edge in tri_edges:
-        # node.remove_edge(edge)
-        # et, es = edge.target, edge.source
-        #if et is not None:
-        #    et.remove_edge(edge)
-        #if es is not None:
-        #    es.remove_edge(edge)
-        edge.delete()
-
-    # if node.id == not_on_main.id:
-    #     # the input node is not part of the merged line
-    #     # it is the tap.
-    #
-    #     print('case 1')
-    #     print(*map(_show, [main1, node, main2]))
-    #     print('in',  main1.id, 'tap', node.id , not_on_main.id, 'suc', main2.id)
-    #     main1.geom = new_pnt
-    #     main1.connect_to(node, is_tap=True)
-    #     # connect main2
-    #     sucs = main2.successors()
-    #     for s in sucs:
-    #         main2.disconnect_from(s)
-    #         main1.connect_to(s)
-    #
-    # else:
-    #     # node is part of the main line
-    #     # by logic, it has to be the source (therefore it == main1)
-    #     print('case 2')
-    #     print(*map(_show, [node, not_on_main, main2]))
-    #     print('in', node.id, main1.id, 'tap', not_on_main.id, 'suc', main2.id)
-    #
-    #     node.geom = new_pnt
-    #     node.connect_to(not_on_main, is_tap=True)
-    #
-    #     sucs = main2.successors()
-    #     print(len(sucs))
-    #     for s in sucs:
-    #         main2.disconnect_from(s)
-    #         node.connect_to(s)
-
-    # node.update_geom(tuplify(new_pnt.numpy))
-    # node.write('is_tee', True)
-
-    # line from other_node to new point - check if it should be a new drop
-    # tap_edge = [x for x in outer_edges if x not in outer_edges_same_dir][0]
-
-    # disconnect everything
-    # for edge in tri_edges:
-    #     node.remove_edge(edge)
-    #     et, es = edge.target, edge.source
-    #     if et is not None:
-    #         et.remove_edge(edge)
-    #     if es is not None:
-    #         es.remove_edge(edge)
-
-
-    # 6). connect tri_nodes to it
-    # what if node is on TapEdge ??? FUCK
-    for o_edge in outer_edges:
-        line_arg = dict(is_tee=True, radius=o_edge.get('radius'))
-        osrc, otgt = o_edge.source, o_edge.target
-        if osrc == node:
-            continue
-        if otgt == node:
-            continue
-        TIX += 1
-        if new_pnt.distance_to(Point(osrc.geom)) < new_pnt.distance_to(Point(otgt.geom)):
-            tgt_cls, tgt_far = osrc, otgt
-        else:
-            tgt_cls, tgt_far = otgt, osrc
-
-        # if o_edge.id == tap_edge.id:
-        #    node.connect_to(tgt_cls, **line_arg)
-        #     line_to_tap = Line(new_pnt, Point(tgt_cls.geom))
-        #     tap_dir = tap_edge.source.as_np
-        #     dir_similar = similar_dir_abs(line_to_tap, tap_edge.curve, 1e-3)
-        #     xy_close = np.allclose(tap_dir[0:2], new_pnt.numpy[0:2], 1e-2)
-        #
-        #     # tgt_cls.connect_to(tgt_far, **line_arg)
-        #     # node.connect_to(tgt_cls, **line_arg)
-        #
-        #     if xy_close and dir_similar:
-        #         # line pointing to projection point, just extend
-        #         # node.connect_to(tgt_far, **line_arg)
-        #         tgt_cls.connect_to(tgt_far, **line_arg)
-        #         node.connect_to(tgt_cls, **line_arg)
-        #     elif xy_close and not dir_similar:
-        #         # direction is not similar. use closest node to
-        #         tgt_cls.connect_to(tgt_far, **line_arg)
-        #         node.connect_to(tgt_cls, **line_arg)
-        #
-        #     elif not xy_close and dir_similar:
-        #         # horizantal tap - extend is fine
-        #         node.connect_to(tgt_far, **line_arg)
-        #
-        #     else:
-        #         # neither is close. Just make new line
-        #         tgt_cls.connect_to(tgt_far, **line_arg)
-        #         node.connect_to(tgt_far, **line_arg)
-
-        # else:
-        tgt_cls.write('tee_index', TIX)
-        # osrc.remove_edge(o_edge)
-        # otgt.remove_edge(o_edge)
-        # node.connect_to(tgt_far, **line_arg)
-        new_node.connect_to(tgt_cls, tee_index=TIX, **line_arg)
-    # print('-----')
-    return node
-
-def resolve_triangle(tri_edges, tri_nodes):
-    """
-    this node will be moved to triangle center
-    1). tri_nodes = get all triangle nodes
-    2). get edges which are connected to triangle and are pipes
-    3). COL = the two with closest direction
-    3). the tri_edges
-    4). pt = edge between COL.centroid
-    5). move node to pt,
-    6). connect tri_nodes to it
-
-    :param tri_edges:
-    :return:
-    """
-    mix = [(i, np.round(x.geom[-1], 7)) for i, x in enumerate(tri_nodes)]
-    main_nodes, best = [], 1e6
-    for (i1, z1), (i2, z2) in itertools.combinations(mix, 2):
-        score = np.abs(z1 - z2)
-        if score < best:
-            main_nodes, best = [i1, i2], score
-
-    n1, n2 = list(map(lambda x: Point(tri_nodes[x].geom), main_nodes))
-    new_pnt = gutil.tuplify(n1.midpoint_to(n1).numpy)
-    tap_ix = list(set(range(3)).difference(main_nodes))[0]
-
-    # if 0 is in same, it is on the main
-    if 0 in main_nodes:
-        node = tri_nodes[0]
-        main_nodes.remove(0)
-        main2 = tri_nodes[main_nodes[0]]
-        tap_node = tri_nodes[tap_ix]
-        print('case 1')
-    else:
-        node = tri_nodes[main_nodes[0]]
-        main2 = tri_nodes[main_nodes[1]]
-        tap_node = tri_nodes[0]
-        print('case 2')
-
-    # print(*map(_show, [node, tap_node, main2]))
-    print('in', node.id, 'tap', tap_node.id, 'suc', main2.id)
-
-    node.geom = new_pnt
-    sucs = main2.successors()
-    for s in sucs:
-        main2.disconnect_from(s)
-        node.connect_to(s, is_pipe=True)
-
-    node.connect_to(tap_node, is_tap=True, is_pipe=True)
-    # assert tap_node in node.successors()
-    # assert tap_node in node.successors()
-    # assert main2 not in node.successors()
-    return node
 

@@ -89,6 +89,7 @@ class MovementQ(QueuePropogator):
 
 
 class Rotator(MovementQ):
+    """ rotate around 0 with angle """
     def __init__(self, angle):
         l1 = Line(Point(0, 0, 0), Point(1, 0, 0))
         l2 = Line(Point(0, 0, 0), Point(np.cos(angle), np.sin(angle), 0))
@@ -105,3 +106,21 @@ class Scale(QueuePropogator):
         pt = self.scale * Point(node.geom).numpy
         node.geom = tuplify(pt)
         return node
+
+
+class SlopeChange(QueuePropogator):
+    def __init__(self, scale):
+        QueuePropogator.__init__(self)
+        self.scale = scale
+
+
+
+
+def rotate_graph(root_node, angle):
+    return Rotator(angle)(root_node)
+
+
+
+
+
+
