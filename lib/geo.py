@@ -50,6 +50,36 @@ def intersect(line1, line2):
     return x, y
 
 
+def rotation_matrix(a, b):
+    # a and b are in the form of numpy array
+    au = normalized(a)
+    bu = normalized(b)
+    m = np.array([[bu[0] * au[0], bu[0] * au[1], bu[0] * au[2]],
+                  [bu[1] * au[0], bu[1] * au[1], bu[1] * au[2]],
+                  [bu[2] * au[0], bu[2] * au[1], bu[2] * au[2]]])
+    return m
+
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+
 def dot(x, y):
     """ Dot product of arrays x and y"""
     return inner(x, y)
@@ -79,13 +109,13 @@ def dual(v):
     """Return two unit vectors orthogonal to array v"""
     if abs2(v) > 1e-20:
         if v[0] < 0.7:
-            n1 = normalized(orthogonalized_to(array([1,0,0],'d'),v))
+            n1 = normalized(orthogonalized_to(array([1, 0, 0], 'd'), v))
         else:
-            n1 = normalized(orthogonalized_to(array([0,1,0],'d'),v))
-        n2 = cross(v,n1)
-        return [n1,n2]
+            n1 = normalized(orthogonalized_to(array([0, 1, 0], 'd'), v))
+        n2 = cross(v, n1)
+        return [n1, n2]
     else:
-        return [array([1,0,0],'d'),array([0,1,0],'d')]
+        return [array([1, 0, 0], 'd'), array([0, 1, 0], 'd')]
 
 
 def qmul(q1, q2):
@@ -157,6 +187,9 @@ class Point(object):
 
     def moved(self, m):
         return m.on_point(self)
+
+    # def extend(self, start, end):
+
 
     def projected_on(self, obj):
         if isinstance(obj, Line):
@@ -230,6 +263,10 @@ class Line(object):
     @property
     def direction(self):
         return self.t
+
+    @property
+    def unit_vector(self):
+        return unit_vector(self.r2 - self.r)
 
     @property
     def length(self):
@@ -306,6 +343,7 @@ class Line(object):
     def __str__(self):
         return repr(self)
 
+    @property
     def dual(self):
         """Return a plane such that plane.normal() == self"""
         d = dual(self.t)
@@ -323,7 +361,7 @@ class Plane(object):
         
         Accepts multiple types of arguments, which can either be passed as
         multiple arguments or as a list:
-         * A Line and a Point. Creates a Plane purpendicular to the line and
+         * A Line and a Point. Creates a Plane perpendicular to the line and
            containing the point.
          * 3 Points. Creates a Plane containing all three points
          * >3 Points. Fit a plane to the points using linear regression. The
@@ -335,12 +373,11 @@ class Plane(object):
 
         if len(points) == 2:
             # point and line
-            if isinstance(points[0], Line) and isinstance(points[1], Point):
-                p = points[1]
-                l = points[0]
-            elif isinstance(points[1], Line) and isinstance(points[0], Point):
-                p = points[0]
-                l = points[1]
+            p1, p2 = points
+            if isinstance(p1, Line) and isinstance(p2, Point):
+                p, l = p2, p1
+            elif isinstance(p2, Line) and isinstance(p1, Point):
+                p, l = p1, p2
             else:
                 raise ValueError("Invalid arguments to Plane(%s)"%",".join([p.__class__.__name__ for p in points]))
             self.r = p.r
@@ -395,7 +432,8 @@ class Plane(object):
             raise TypeError("Invalid type")
 
     def angle_to(self, obj):
-        """ Calculates the angle formed between this plane and another Plane or Line (0 to pi/4)"""
+        """ Calculates the angle formed between this plane
+         and another Plane or Line (0 to pi/4)"""
         if isinstance(obj, Line):
             return obj.angle_to(self)
         elif isinstance(obj, Plane):
@@ -421,6 +459,7 @@ class Plane(object):
         """ Projects a point or line onto this plane """
         return obj.projected_on(self)
 
+    @property
     def normal(self):
         """Return a line normal to the plane"""
         return Line(Point(self.r), Point(self.r+self.n))
@@ -561,6 +600,31 @@ class Plane(object):
         raise TypeError("Invalid argument. Expect Point, Line, or Plane, but found %s"%obj.__type__)
 
 
+origin = Point(0., 0., 0.)
+basis_x = Line(origin, Point(1., 0., 0.))
+basis_y = Line(origin, Point(0., 1., 0.))
+basis_z = Line(origin, Point(0., 0., 1.))
+
+
+class CoordinateSystem(object):
+    def __init__(self, *args):
+        self._x = None
+        self._y = None
+        self._z = None
+        if len(args) == 0:
+            self.x, self._y, self._z = Plane(origin, basis_x),  Plane(origin, basis_y),  Plane(origin, basis_z)
+        if len(*args) == 2:
+            # two lines -> two planes
+            x1, x2 = args
+            if isinstance(x1, Plane) and isinstance(x2, Plane):
+                x, y, z = None, None, None
+            if isinstance(x1, Line) and isinstance(x2, Line):
+                _cross = np.cross(x1.unit_vector, x2.unit_vector)
+                x, y, z = x1.dual, x2.dual, None
+
+
+
+
 class Movement(object):
     """ Represents an affine transform between two objects
 
@@ -604,9 +668,9 @@ class Movement(object):
             if dot(from_obj.t, to_obj.t) < 1 - 1e-14:
                 self.q = qrotor(cross(from_obj.t, to_obj.t),
                                 math.acos(dot(from_obj.t, to_obj.t)))
-                self.dr = orthogonalized_to(to_obj.r - qrotate(self.q, from_obj.r),to_obj.t)
+                self.dr = orthogonalized_to(to_obj.r - qrotate(self.q, from_obj.r), to_obj.t)
             else:
-                #TODO test this
+                # TODO test this
                 self.dr = orthogonalized_to(to_obj.r - from_obj.r, to_obj.t)
 
         elif isinstance(from_obj, Line) and isinstance(to_obj, Plane):
@@ -677,7 +741,6 @@ class Movement(object):
 
     def apply(self, many):
         pass
-
 
 
 class Face(Plane):

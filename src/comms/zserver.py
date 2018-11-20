@@ -2,6 +2,11 @@ import zmq
 import time
 import os
 import json
+from . import smartbuild as sb
+
+
+
+_DONE = 'DONE'
 
 
 class ZBuilder(object):
@@ -21,66 +26,70 @@ class ZBuilder(object):
         comm = ''
         while len(commands) > 0:
             response = self.socket.recv()
+            response = response.decode()
 
-            if response != b'SUCCESS':
-                print(cnt, comm, response.decode())
+            if response.startswith('SUCCESS') is False:
+                print(cnt, comm, response)
 
-            if response == b'DONE':
+            if response == _DONE:
+                print(cnt, _DONE)
                 break
             elif lim is not None and cnt > lim:
+                print(cnt, _DONE)
                 break
             else:
                 comm = commands.on_response(response)
                 comm = self.serialize(comm)
                 self.socket.send_string(comm)
-                time.sleep(0.2)
+                # time.sleep(0.1)
                 cnt += 1
 
         msg = self.socket.recv()
         print(cnt, msg)
         self.socket.send_string('END')
 
-    def load_commands(self, file_path):
-        if os.path.exists(file_path) is True:
-            with open(file_path, 'r') as F:
-                data = json.load(F)
-                # json.d
-            return data
+    # def load_commands(self, file_path):
+    #     if os.path.exists(file_path) is True:
+    #         with open(file_path, 'r') as F:
+    #             data = json.load(F)
+    #         return data
 
-    def run_file(self, path):
-        halt = False
-        while halt is not True:
-            msg = self.socket.recv()
-            print('--------------------------')
-            if msg.decode() == 'Ready':
-                print('--------------------------')
-                self.socket.send_string('Handshake')
-                cmd = self.load_commands(path)
-                if cmd is None:
-                    print('file is missing')
-                    break
-                self.send_instructions(cmd)
+    # def run_file(self, path):
+    #     halt = False
+    #     while halt is not True:
+    #         msg = self.socket.recv()
+    #         print('--------------------------')
+    #         if msg.decode() == 'Ready':
+    #             print('--------------------------')
+    #             self.socket.send_string('Handshake')
+    #             cmd = self.load_commands(path)
+    #             if cmd is None:
+    #                 print('file is missing')
+    #                 break
+    #             self.send_instructions(cmd)
 
     def run(self, instruction):
         halt = False
         while halt is not True:
             msg = self.socket.recv()
-            if msg.decode() == 'Ready':
-                print('---------------------------')
+            msg = msg.decode()
+            print(msg + '---------------------------')
+            if msg == 'Ready':
+                print('Handshake')
                 self.socket.send_string('Handshake')
                 cmd = instruction.on_first()
                 if cmd is None:
                     print('no instructions')
                     break
                 self.send_instructions(instruction)
+            else:
+                print('Early Done')
+                self.socket.send_string('DONE')
 
 
 if __name__ == '__main__':
-    import src.comms.smartbuild as sb
-
     path = '/home/psavine/source/viper/data/out/commands/comms.json'
     Instr = sb.CommandFile(path)
-
     server = ZBuilder()
-
     server.run(Instr)
+

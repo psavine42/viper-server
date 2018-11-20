@@ -5,6 +5,7 @@ from src.formats.revit import Cmds, Command
 import  src.formats.skansk as sks
 
 
+
 class Strategy(object):
     """ I have seen things. I will learn from them """
     command = None
@@ -23,8 +24,27 @@ class StrategyTee(Strategy):
     command = Cmds.Tee
 
 
+class StrategyCoupling(Strategy):
+    command = Cmds.Tee
 
 
+class StrategyElbow(Strategy):
+    command = Cmds.Tee
+
+
+class StrategyPipe(Strategy):
+    command = Cmds.Tee
+
+
+class IZServer(object):
+    def reset(self):
+        pass
+
+    def on_response(self, *args):
+        pass
+
+    def on_first(self):
+        pass
 
 
 class RevitBuildStateMachine(object):
@@ -50,17 +70,17 @@ class RevitBuildStateMachine(object):
 
     # resolution ------------
     def on_response(self, command, message):
-        if message in [b'SUCCESS', b'READY']:
+        if message in ['SUCCESS', 'READY']:
             if len(self.q) > 0:
                 el = self.q.pop(0)
-                # sks.MakeInstructions.
-
 
         return
 
 
 class CommandFile(object):
-    """ Static list of command to run """
+    """ Static list of command to run from a file
+        file is reloaded on each run
+    """
 
     def __init__(self, file_path):
         self._path = file_path
@@ -74,13 +94,11 @@ class CommandFile(object):
             with open(self._path, 'r') as F:
                 self._data = json.load(F)
 
-    def on_response(self, command, message):
+    def on_response(self, *args):
         return self._data.pop(0)
 
     def on_first(self):
-        if os.path.exists(self._path) is True:
-            with open(self._path, 'r') as F:
-                self._data = json.load(F)
+        self.reset()
         return 'Ready'
 
 

@@ -182,8 +182,6 @@ class GraphTrim(QueuePropogator):
         super(GraphTrim, self).__init__(name=None, **kwargs)
 
     def on_default(self, node, tol=0.001, **kwargs):
-        # if node.id not in self.seen:
-        #     self.seen.add(node.id)
         sucs = node.successors(edges=True)
         pred = node.predecessors(edges=True)
         if len(sucs) == 1 and len(pred) == 1:
@@ -193,7 +191,7 @@ class GraphTrim(QueuePropogator):
             if np.allclose(crv1.direction, crv2.direction, atol=tol):
                 cur_src = prd.source
                 new_tgt = suc.target
-                cur_src.connect_to(new_tgt, **suc.tmps)
+                cur_src.connect_to(new_tgt, **{**prd.tmps, **suc.tmps})
                 node.remove_edge(suc)
                 node.remove_edge(prd)
                 cur_src.remove_edge(prd)

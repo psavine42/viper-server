@@ -173,6 +173,10 @@ def by_tri_centroids(mesh1, meshes):
     return closest, dists, tid
 
 
+def euler_composition(m1, m2, m3):
+    return np.dot(m3, np.dot(m2, m1))
+
+
 def by_tri_verts(mesh1, mes2, tol=0.001):
     """
     get nearest on surface points

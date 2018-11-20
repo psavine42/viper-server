@@ -1,8 +1,13 @@
 from .base import QueuePropogator
+import lib.geo
+import importlib
+importlib.reload(lib.geo)
 from lib.geo import Line, Point, Movement
 from ..structs.node_utils import tuplify, node_with_id
 import numpy as np
 from scipy.spatial import kdtree
+
+
 
 
 class SpatialRoot(QueuePropogator):
