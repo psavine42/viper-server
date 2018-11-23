@@ -799,6 +799,15 @@ class SolidSystemLF(SolidSystem):
         return np.sort(dists, axis=1)[0:2, -1].astype(int).tolist()
 
 
+class MockSystem(object):
+    def __init__(self):
+        self.G = None
+        self.root = None
+
+    def save_(self):
+        pass
+
+
 
 class System(object):
     _ROUND = 0

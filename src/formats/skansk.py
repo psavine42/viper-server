@@ -17,6 +17,7 @@ from src.structs import Node, Edge
 import src.structs.node_utils as gutil
 from enum import Enum
 from shapely.ops import nearest_points
+from src.formats.revit import TeeCmd, ElbowCmd, CouplingCmd, Tee
 
 _ngh_arg = dict(fwd=True, bkwd=True, edges=True)
 
@@ -174,6 +175,7 @@ def neighbor_pipes(edge, n):
 
 _REVIT_ANGLE = 89.0
 _ELBOW_COUPLING_TOL = 5.0
+
 
 # SKS specific --------------------------------------------------------------------
 class DetectElbows(QueuePropogator):
@@ -402,6 +404,7 @@ def add_ups(node, h=0.1, **kwargs):
         node.connect_to(new, remove_head=True, tap_edge=True)
         node.write('has_head', False)
         node.write('head_tee', True)
+        new.write('$create', '$head')
     return node
 
 
@@ -614,52 +617,6 @@ class Annotator(QueuePropogator):
         return node
 
 
-class RemoveSubLoops(QueuePropogator):
-    def __init__(self, **kwargs):
-        super(RemoveSubLoops, self).__init__(fwd=True, **kwargs)
-
-    def on_default(self, node, depth=5, **kwargs):
-        # prev_data.append(node.id)
-        seen_local = {node.id}
-        depth_cnt = 0
-
-        halt = {x.id for x in node.neighbors(**kwargs)}
-
-        q = node.neighbors(**kwargs) + [None]
-        print(node.id, len(q))
-
-        while q and depth_cnt < depth:
-            this_nd = q.pop(0)
-            # print(this_nd)
-            if this_nd is None:
-                q.append(None)
-                depth_cnt += 1
-                print(depth_cnt)
-                continue
-
-            elif this_nd.id in halt and depth_cnt > 0:
-                edge = gutil.edge_between(node, this_nd)
-                if edge is None:
-                    print('err', this_nd)
-
-                elif edge.get('is_triangle', None) is None \
-                        and _is_pipe(edge) is False:
-
-                    node.remove_edge(edge)
-                    this_nd.remove_edge(edge)
-                    print('REMOVED', edge.id)
-
-                else:
-                    print('triangle')
-
-            elif this_nd.id in seen_local:
-                continue
-
-            seen_local.add(this_nd.id)
-            q += this_nd.neighbors()
-        return node
-
-
 class LongestPath(QueuePropogator):
     """ Disconnect everything that is not on longets path """
     def __init__(self, **kwargs):
@@ -682,28 +639,6 @@ class LongestPath(QueuePropogator):
         else:
             return sucs
 
-
-class TeeHelper(QueuePropogator):
-    """
-    Revit blows at slopes.
-    therefore, if there is a tee, we have to make sure that the slopes
-    of the mains are the same.
-
-    1) check main slopes
-    2) if they are not within tolerance:
-        2.1) create short pipe with same slope
-
-    """
-    def __init__(self, **kwargs):
-        QueuePropogator.__init__(self)
-
-    def on_default(self, node, **kwargs):
-        preds = node.predecessors(edges=True)
-        succs = node.successors(edges=True)
-        if node.get('is_tee', None) is True:
-            tap_index = node.get('tap_index', None)
-
-        return node
 
 
 class GatherTags(QueuePropogator):
@@ -729,6 +664,20 @@ _RevitFamily = {
 }
 
 
+def tee_nodes(node):
+    return Tee.tee_nodes(node)
+
+
+def tee_edges(node):
+    return Tee.tee_edges(node)
+
+
+is_tee = lambda node: node.get('is_tee', None) is True or node.get('head_tee', None) is True
+is_elbow = lambda node: node.get('is_elbow', None) is True
+is_coupling = lambda node: node.get('is_coupling', None) is True
+is_head_tee = lambda node: node.get('head_tee', None) is True
+
+
 class MakeInstructions(QueuePropogator):
     """
     walker version of 'SystemProcesser'
@@ -739,6 +688,8 @@ class MakeInstructions(QueuePropogator):
     bookkeeping from iteration,
 
     """
+    final_order = [Cmds.Noop]
+
     def __init__(self, **kwargs):
         QueuePropogator.__init__(self, **kwargs)
         self._built = set()
@@ -757,33 +708,6 @@ class MakeInstructions(QueuePropogator):
                 # ensure geometries are built
                 if isinstance(e, Edge) and e.id not in self._built:
                     self._built.add(e.id)
-
-    @staticmethod
-    def tee_commands(node):
-        preds = node.predecessors(edges=True)
-        succs = node.successors(edges=True)
-        pred = preds[0] if node.npred == 1 else None
-
-        if node.nsucs == 2 and node.npred == 1:
-            suc_edge1, suc_edge2 = succs
-
-            if suc_edge2.get('tap_edge', None) is True:
-                return pred, suc_edge1, suc_edge2
-
-            elif suc_edge1.get('tap_edge', None) is True:
-                return pred, suc_edge2, suc_edge1
-
-            elif pred.get('tap_edge', None) is True:
-                return suc_edge1, suc_edge2, pred
-
-        elif node.nsucs == 2 and node.npred == 0:
-            suc_edge1, suc_edge2 = succs
-            if suc_edge2.get('tap_edge', None) is True:
-                return suc_edge1, suc_edge1, suc_edge2
-
-            elif suc_edge1.get('tap_edge', None) is True:
-                return suc_edge2, suc_edge2, suc_edge1
-        return None, None, None
 
     def on_default(self, node, shrink=None, **kwargs):
         """
@@ -828,7 +752,7 @@ class MakeInstructions(QueuePropogator):
             suc1, suc2 = node.successors(edges=True)
             self.add(Cmds.Pipe, suc1, shrink=shrink)
             self.add(Cmds.Pipe, suc2, shrink=shrink)
-            edgein, edgemain, edge_tap = self.tee_commands(node)
+            edgein, edgemain, edge_tap = tee_edges(node)
             if edgein is None:
                 return node
             self.add(Cmds.Tee, edgein, edgemain, edge_tap)
@@ -859,10 +783,23 @@ class MakeInstructions(QueuePropogator):
 
         return node
 
+    def _on_complete_ovr(self, command_list):
+        res = []
+        cmd_vls = [x.value for x in self.final_order]
+
+        rest_ix = cmd_vls.index(0)
+        arrs = [[] for i in range(len(self.final_order))]
+
+        for cmd in command_list:
+            arr_ix = cmd_vls.index(cmd[0]) if cmd[0] in cmd_vls else rest_ix
+            arrs[arr_ix].append(cmd)
+
+        for arr in arrs:
+            res += arr
+        return res
+
     def on_complete(self, node):
-        pipes = [x for x in self._res if x[0] in (Cmds.Pipe.value, Cmds.PipeBetween.value)]
-        not_pipes = [x for x in self._res if x[0] not in (Cmds.Pipe.value, Cmds.PipeBetween.value)]
-        return pipes + not_pipes
+        return self._on_complete_ovr(self._res)
 
 
 class MakeInstructionsNodeBased(MakeInstructions):
@@ -870,82 +807,159 @@ class MakeInstructionsNodeBased(MakeInstructions):
     Create Fittings then connect Pipes between them
 
     """
+    final_order = [Cmds.Noop, Cmds.Pipe, Cmds.FamilyOnFace, Cmds.MoveEnd, Cmds.Coupling]
+
     def __init__(self, **kwargs):
         super(MakeInstructions, self).__init__(**kwargs)
         self._built = set()
-
-    @staticmethod
-    def tee_commands(node):
-        preds = node.predecessors(edges=True)
-        succs = node.successors(edges=True)
-        pred = preds[0] if node.npred == 1 else None
-
-        if node.nsucs == 2 and node.npred == 1:
-            suc_edge1, suc_edge2 = succs
-
-            if suc_edge2.get('tap_edge', None) is True:
-                return pred.source, suc_edge2.target, suc_edge2
-
-            elif suc_edge1.get('tap_edge', None) is True:
-                return pred.source, suc_edge1.target, suc_edge1
-
-            elif pred.get('tap_edge', None) is True:
-                return suc_edge1.source, pred.target, pred
-
-        elif node.nsucs == 2 and node.npred == 0:
-            suc_edge1, suc_edge2 = succs
-            if suc_edge2.get('tap_edge', None) is True:
-                return suc_edge1.target,  suc_edge2.target, suc_edge2
-
-            elif suc_edge1.get('tap_edge', None) is True:
-                return suc_edge2.target,  suc_edge1.target, suc_edge1
-        return None, None, None
 
     def on_default(self, node, shrink=None, **kwargs):
         """
         Generate instructions
         """
-        for e in node.successors(edges=True):
-            if e.target.nsucs == 0:
+        for e, nd in node.successors(both=True):
+            if nd.nsucs == 0:
                 self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, e, shrink=shrink)
+            elif nd.get('is_coupling', None) is True:
+                nxt_egde, nxt_node = nd.successors(both=True, ix=0)
+                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, e, shrink=shrink)
+                self.add(Cmds.Pipe, PipeCmd.PointConnector, nxt_egde, shrink=shrink)
             else:
                 self.add(Cmds.Pipe, PipeCmd.Connectors, e)
 
         if node.get('head_tee', None) is True:
-            n1, n2, edge_tee = self.tee_commands(node)
+            n1, n2, edge_tee = tee_nodes(node)
             if n1 is None:
                 return node
             self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
             self.add(Cmds.FamilyOnFace, edge_tee, 1, 0)
 
         elif node.get('is_coupling', None) is True:
-            p, t = node.predecessors()[0], node.successors()[0]
-            self.add(Cmds.FamilyOnPoint, p, node, t, family='Coupling - Generic')
+            p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
+            self.add(Cmds.Coupling, p, t, family='Coupling - Generic')
 
         elif node.get('is_tee', None) is True:
-            n1, n2, _ = self.tee_commands(node)
+            n1, n2, _ = tee_nodes(node)
             self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
 
         elif node.get('is_elbow', None) is True:
-            p, t = node.predecessors()[0], node.successors()[0]
-            self.add(Cmds.FamilyOnPoint, p, node, t,
-                     family='Elbow - Generic'
-                     # , use_angle=True
-                     )
+            p, t = node.predecessors(ix=0), node.successors(ix=0)
+            self.add(Cmds.FamilyOnPoint, p, node, t, family='Elbow - Generic')
+        return node
+
+
+class MakeInstructionsV3(MakeInstructions):
+    final_order = [Cmds.FamilyOnPoint, Cmds.Pipe, Cmds.Noop]
+
+    def __init__(self, **kwargs):
+        super(MakeInstructions, self).__init__(**kwargs)
+        self._built = set()
+        self._backups = {}
+
+    def on_default(self, node, shrink=None, **kwargs):
+        """
+        Generate instructions
+        """
+        for succ_edg, succ_nd in node.successors(both=True):
+            eid = succ_edg.id
+            if is_tee(node) and is_tee(succ_nd):
+                self.add(Cmds.Pipe, PipeCmd.Connectors, succ_edg)
+
+            elif is_tee(node) and not is_tee(succ_nd):
+                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
+                self.add(Cmds.Connect, succ_edg, succ_nd)
+
+            elif not is_tee(node) and is_tee(succ_nd):
+                self.add(Cmds.Pipe, PipeCmd.PointConnector, succ_edg, shrink=shrink)
+                self.add(Cmds.Connect, succ_edg, node)
+            else:
+                self.add(Cmds.Pipe, PipeCmd.Points, succ_edg, shrink=shrink)
+
+            # ends of pipe
+            if succ_nd.nsucs == 0:
+                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
+
+        if is_head_tee(node):
+            n1, n2, edge_tee = tee_nodes(node)
+            if n1 is None:
+                return node
+            self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
+            self.add(Cmds.FamilyOnFace, edge_tee, 1, 0)
+
+        elif is_coupling(node):
+            p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
+            self.add(Cmds.Coupling, p, t)
+
+        elif is_tee(node):
+            n1, n2, _ = tee_nodes(node)
+            self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
+
+        elif is_elbow(node):
+            pe, pn = node.predecessors(ix=0, both=True)
+            te, tn = node.successors(ix=0, both=True)
+            line1 = geo.Line(geo.Point(node.as_np), geo.Point(pn.as_np))
+            line2 = geo.Line(geo.Point(node.as_np), geo.Point(tn.as_np))
+            if np.dot(line1.unit_vector, line2.unit_vector) > 0:
+                self.add(Cmds.Elbow, pe, te)
+            else:
+                self.add(Cmds.FamilyOnPoint, pn, node, tn, family='Elbow - Generic')
 
         return node
 
-    def on_complete(self, node):
-        pipe, fams, rest = [], [], []
-        for cmd in self._res:
-            if cmd[0] == 1:
-                pipe.append(cmd)
-            elif cmd[0] in [Cmds.FamilyOnFace.value]:
-                fams.append(cmd)
-            else:
-                rest.append(cmd)
-        return rest + pipe + fams
+    def on_complete2(self):
+        main = self._on_complete_ovr(self._res)
+        return {'main': main, 'backup': self._backups}
 
+
+def make_actions(node, shrink=None, **kwargs):
+    """
+            Generate instructions
+            """
+    # create = Command.create
+    create = Command.action
+    res = []
+    for succ_edg, succ_nd in node.successors(both=True):
+        succ_edg.write('$create', 'pipe')
+        if is_tee(node) and is_tee(succ_nd):
+            res += create(PipeCmd.Connectors, succ_edg)
+
+        elif is_tee(node) and not is_tee(succ_nd):
+            res += create(PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
+            res += create(Cmds.Connect, succ_edg, succ_nd)
+
+        elif not is_tee(node) and is_tee(succ_nd):
+            res += create(PipeCmd.PointConnector, succ_edg, shrink=shrink)
+            res += create(Cmds.Connect, succ_edg, node)
+        else:
+            res += create(PipeCmd.Points, succ_edg, shrink=shrink)
+
+        # ends of pipe
+        if succ_nd.nsucs == 0:
+            res += create(PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
+
+    if is_head_tee(node):
+        node.write('$create', 'tee')
+        n1, n2, edge_tee = tee_nodes(node)
+        if n1 is None:
+            return res
+        res += create(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
+        res += create(Cmds.FamilyOnFace, edge_tee, 1, 0)
+
+    elif is_coupling(node):
+        node.write('$create', 'coupling')
+        p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
+        res += create(Cmds.Coupling, p, t)
+
+    elif is_tee(node):
+        n1, n2, _ = tee_nodes(node)
+        node.write('$create', 'tee')
+        res += create(TeeCmd.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
+
+    elif is_elbow(node):
+        node.write('$create', 'elbow')
+        res += create(ElbowCmd.Connectors, node)
+
+    return res
 
 # ------------------------------------------------------------
 def resolve_heads(root_node, spr_points, tol=1.):

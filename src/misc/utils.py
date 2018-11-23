@@ -90,6 +90,32 @@ def nx_to_nodes(system):
     return root_node
 
 
+def nxgraph_to_nodes(G):
+    root_node = None
+    seen = set()
+    tmp = {}
+    for n, data in G.nodes(data=True):
+
+        if n not in seen:
+            seen.add(n)
+            pred = list(G.predecessors(n))
+            sucs = list(G.successors(n))
+
+            node = Node(n, **data)
+            if node.get('root', None) is True:
+                root_node = node
+
+            for x in pred:
+                if x in tmp:
+                    tmp[x].connect_to(node, **G[x][n])
+            for x in sucs:
+                if x in tmp:
+                    node.connect_to(tmp[x], **G[n][x])
+            tmp[n] = node
+
+    return root_node
+
+
 def sys_to_nx(system, G=None, **kwargs):
     G = G if G else nx.DiGraph()
     for node in system:
@@ -99,7 +125,7 @@ def sys_to_nx(system, G=None, **kwargs):
 
 
 def nodes_to_nx(root, fwd=True, bkwd=False, G=None):
-
+    root.write('root', True)
     G = G if G else nx.DiGraph()
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         G.add_node(node.geom, **{**node.data, **node.tmps})
@@ -118,3 +144,8 @@ def bunch_to_nx(nodes_list, **kwargs):
         G = sys_to_nx(n, G=G, **kwargs)
 
     return G
+
+# def graph_to_file(G, path):
+    # with open(path, 'rb') as F:
+
+

@@ -5,7 +5,7 @@ from .cell import Cell
 
 
 def uid_fn():
-    return random.randint(0, 1e7)
+    return random.randint(0, 1e10)
 
 
 # -------------------------------------------------

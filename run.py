@@ -3,6 +3,8 @@ import tornado.web
 from src import server
 import socket
 import argparse
+from src.comms.smartbuild import CommandFile, GraphFile
+from src.comms.zserver import ZBuilder
 
 
 def get_free_tcp_port():
@@ -26,11 +28,16 @@ def run_tornado():
 
 
 def run_zserver():
-    from src.comms.smartbuild import CommandFile
-    from src.comms.zserver import ZBuilder
     path = '/home/psavine/source/viper/data/out/commands/comms.json'
 
     instructions = CommandFile(path)
+    server = ZBuilder()
+    server.run(instructions)
+
+
+def run_zserver_graph():
+    path = '/home/psavine/source/viper/data/out/commands/graph.pkl'
+    instructions = GraphFile(file_path=path)
     server = ZBuilder()
     server.run(instructions)
 
@@ -41,7 +48,8 @@ if __name__ == "__main__":
     arg = p.parse_args()
     if arg.action == 'z':
         run_zserver()
-
+    elif arg.action == 'g':
+        run_zserver_graph()
     else:
         run_tornado()
 

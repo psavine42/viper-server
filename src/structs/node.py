@@ -172,7 +172,7 @@ class Node(GraphData):
                 return node
         return None
 
-    def __iter__(self, fwd=True, bkwd=False,  seen=None):
+    def __iter__(self, fwd=True, bkwd=False, seen=None):
         """defaults to DFS on successors """
         if seen is None:
             seen = set()
@@ -210,7 +210,6 @@ class Node(GraphData):
     def fill_cells(self):
         keys = ['npred', 'nsucs']
         for k in keys:
-
             val = self.get(k, None)
             print(k, val)
             #if val:

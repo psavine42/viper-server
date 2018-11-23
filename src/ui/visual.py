@@ -54,9 +54,6 @@ def viz_line(c1, c2, handle=None, thickness=0.05, **kwargs):
             c2 = np.asarray(c2)
         zr = np.eye(3) * thickness
         _x, _y, _p = zr[0], zr[1], zr[2]
-        # _x = np.array([thickness, 0, 0])
-        # _y = np.array([0, thickness, 0])
-        # _p = np.array([0, 0, thickness])
         ls = Trimesh(vertices=[c1,      c2,
                                c1 + _p, c2 + _p,
                                c1 - _p, c2 - _p,
@@ -286,8 +283,6 @@ def viz_heirarchical(root_node, handle, **kwargs):
             q.append((suc_node2, first + [last]))
         else:
             continue
-
-
 
 def delete(k):
     VIZ[k].delete()
