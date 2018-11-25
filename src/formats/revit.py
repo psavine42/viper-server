@@ -15,10 +15,8 @@ import transforms3d.taitbryan as tb
 import src.structs.node_utils as gutil
 from src.structs import Node, Edge
 import importlib
-
 import src.formats.revit_base
-# importlib.reload(src.formats.revit_base )
-import src.formats.revit_base as rvb # import IStartegy, ICommandManager
+import src.formats.revit_base as rvb
 importlib.reload(rvb)
 
 _TOLERANCE = 128    # 1/128 inch
@@ -170,36 +168,22 @@ class CurvePlacement(CommandFactory):
         return [cdef + [edge.id, edge.source.id, edge.target.id, r]]
 
     @classmethod
-    def from_points(cls, edge, shrink=None, use_radius=True, **kwargs):
-        """
-        format for pipe:
-        [ CmdId, edge.id, x1, y1, z1, x2, y2, z2, radius ]
-        """
-        start, end = edge.source, edge.target
-        crv = src.geom.MepCurve2d(start.geom, end.geom)
-        r = cls.radius_from_edge(edge, use_radius)
-        if shrink is not None:
-            s1 = -r / 2 if edge.source.npred == 0 is False else 0.
-            s2 = -r / 2 if edge.target.nsucs == 0 is False else 0.
-            p1, p2 = crv.extend(s1, s2).points
-        else:
-            p1, p2 = crv.points
-
+    def from_points(cls, edge, **kwargs):
         cdef = [Cmds.Pipe.value, edge.id]
-        return [cdef + [edge.id] + list(p1) + list(p2) + [r]]
+        return [cdef + cls.from_2points(edge, **kwargs)]
 
     @classmethod
-    def from_2points(cls, edge, shrink=None, use_radius=True, **kwargs):
+    def from_2points(cls, edge, shrink=True, use_radius=True, **kwargs):
         start, end = edge.source, edge.target
         crv = src.geom.MepCurve2d(start.geom, end.geom)
         r = cls.radius_from_edge(edge, use_radius)
         if shrink is not None:
-            s1 = -r / 2 if edge.source.npred == 0 is False else 0.
-            s2 = -r / 2 if edge.target.nsucs == 0 is False else 0.
+            s1 = -r * 0.2 if edge.source.npred != 0 else 0.
+            s2 = -r * 0.2 if edge.target.nsucs != 0 else 0.
             p1, p2 = crv.extend(s1, s2).points
         else:
             p1, p2 = crv.points
-        return [edge.id] + list(p1) + list(p2) + [r]
+        return list(p1) + list(p2) + [r]
 
     @classmethod
     def from_connector_point(cls, edge, use_radius=True, **kwargs):
@@ -411,11 +395,9 @@ class Command(CommandFactory):
         """
         line1 = geo.Line(geo.Point(node.as_np), geo.Point(node_in.as_np))
         line2 = geo.Line(geo.Point(node.as_np), geo.Point(node_up.as_np))
-
         xforms = cls._create_geometry_rot2(line1, line2, family=family, **kwargs)
         t_edge = gutil.edge_between(node_in, node)
         radius = CurvePlacement.radius_from_edge(t_edge) * 0.5
-
         return [[Cmds.FamilyOnPoint.value, family,  node.id, 2] + xforms + [radius]]
 
     @classmethod
@@ -429,7 +411,6 @@ class Command(CommandFactory):
         """
         line1 = geo.Line(geo.Point(node.as_np), geo.Point(node_in.as_np))
         line2 = geo.Line(geo.Point(node.as_np), geo.Point(node_up.as_np))
-
         xforms = cls._create_geometry_rot2(line1, line2, family=family, **kwargs)
         t_edge = gutil.edge_between(node_in, node)
         radius = CurvePlacement.radius_from_edge(t_edge) * 0.5
@@ -460,6 +441,7 @@ class Pipe(rvb.ICommandManager):
         self._strategies = [self.ConnectorPoint, self.FromPoints]
         self._init_strategy(strategy, **kwargs)
 
+    # Templates ---------------------------------------------------
     class PipeBase(rvb.IStartegy):
         base_val = Cmds.Pipe.value
         sub_cmd = -1
@@ -468,11 +450,12 @@ class Pipe(rvb.ICommandManager):
         def cmd_base(self):
             return [self.base_val, self.obj.id, self.sub_cmd]
 
+    # Create Cmds : Connectors, Points, Point Connector ------------
     class FromPoints(PipeBase):
         sub_cmd = PipeCmd.Points.value
 
         def action(self, edge, **kwargs):
-            geom = CurvePlacement.from_2points(edge, **kwargs)
+            geom = CurvePlacement.from_2points(edge, shrink=True)
             yield [self.cmd_base + geom]
 
         def success(self, edge, action):
@@ -483,33 +466,60 @@ class Pipe(rvb.ICommandManager):
 
         def action(self, edge, **kwargs):
             start, end = edge.source, edge.target
-            r = CurvePlacement.radius_from_edge(edge, True)
-            yield [self.cmd_base + [start.id] + list(end.geom) + [r]]
+            geom = CurvePlacement.from_2points(edge, shrink=True)
+            yield [self.cmd_base + [start.id] + geom[3:]]
 
         def success(self, edge, action):
             edge.write(built=True, conn1=True)
 
-        def fail(self, edge, action):
-            yield Pipe.FromPoints(edge)
+        def fail(self, edge, action, msg):
+            """
+            - rebuild the pipe from points.
+            - connect the start of the edge to source connector
+            """
+            yield Pipe.FromPoints(self.parent)
+            yield Pipe.ConnectStartToNode(self.parent)
 
-    class ConnectEndToNode(PipeBase):
+    class Connectors(PipeBase):
         sub_cmd = PipeCmd.Connectors.value
 
         def action(self, edge, **kwargs):
-            yield [self.cmd_base + [edge.id, edge.target.id]]
+            yield [self.cmd_base + [edge.source.id, edge.target.id]]
+
+        def success(self, edge, action):
+            edge.write(built=True, conn1=True, conn2=True)
+
+        def fail(self, edge, action, msg):
+            yield Pipe.FromPoints(self.parent)
+
+    # Updates Connect start or end ------------------------------
+    class ConnectBase(rvb.IStartegy):
+        """
+        revit connectors are indexed to 1
+        connect [ edge, connector at end -
+        """
+        base_val = Cmds.MoveEnd.value
+
+        @property
+        def cmd_base(self):
+            return [self.base_val, self.obj.id]
+
+    class ConnectEndToNode(ConnectBase):
+        def action(self, edge, **kwargs):
+            yield [self.cmd_base + [edge.id, 1, edge.target.id]]
 
         def success(self, edge, action):
             edge.write(conn2=True)
 
-    class ConnectStartToNode(PipeBase):
+    class ConnectStartToNode(ConnectBase):
         def action(self, edge, **kwargs):
-            yield [self.cmd_base + [edge.id, edge.source.id]]
+            yield [self.cmd_base + [edge.id, 0, edge.source.id]]
 
         def success(self, edge, action):
             edge.write(conn1=True)
 
 
-# Template strattegies -------------------------------------------------
+# Template strategies -------------------------------------------------
 class _GeomPlacementBase(rvb.IStartegy):
     """
     for Placing a geometry without reference to connectors
@@ -521,17 +531,17 @@ class _GeomPlacementBase(rvb.IStartegy):
         """
         node.write(built=True)
         for edge in node.successors(edges=True):
-            yield Pipe(edge, strategy=Pipe.ConnectorPoint)
+            yield Pipe.on(edge, Pipe.ConnectorPoint)
         for edge in node.predecessors(edges=True):
-            yield Pipe(edge, strategy=Pipe.ConnectEndToNode)
+            yield Pipe.on(edge, Pipe.ConnectEndToNode)
 
-    def fail(self, node, action):
+    def fail(self, node, action, msg):
         """ if building a node fails, still generate the
             builders for successor edges
         """
         node.write(built=False)
         for edge in node.successors(edges=True):
-            yield Pipe.on(edge, strategy=Pipe.FromPoints)
+            yield Pipe.on(edge, Pipe.FromPoints)
 
 
 class _FromConnectorsBase(rvb.IStartegy):
@@ -557,7 +567,7 @@ class _FromConnectorsBase(rvb.IStartegy):
         """
         self._record(node, True)
 
-    def fail(self, node, action):
+    def fail(self, node, action, msg):
         """
         if the node cannot be built from connectors,
         successor edges are already there so not much more to do
@@ -566,49 +576,64 @@ class _FromConnectorsBase(rvb.IStartegy):
 
 
 # Concrete Builders ----------------------------------------------
-class IElbow(rvb.ICommandManager):
+class Elbow(rvb.ICommandManager):
+    """
+    Generally it works to create elbows from two connectors
+
+    -most fail cases are from acute angles
+
+    """
     def __init__(self, parent, strategy=None, **kwargs):
-        super(IElbow, self).__init__(parent, **kwargs)
+        super(Elbow, self).__init__(parent, **kwargs)
         self._strategies = [self.FromConnectors, self.FromGeometryPlacement]
         self._init_strategy(strategy, **kwargs)
+
+    @staticmethod
+    def elbow_neigh(node, **kwargs):
+        pred = node.predecessors(ix=0, **kwargs)
+        succ = node.successors(ix=0, **kwargs)
+        return pred, succ
 
     class ElbowBase(rvb.IStartegy):
         fam = 'Elbow - Generic'
         base_val = Cmds.Elbow.value
 
-    class ConnectPipeTo(ElbowBase, _FromConnectorsBase):
-        def action(self, node, **kw):
-            pred = node.predecessors(ix=0, edges=True)
-            succ = node.successors(ix=0, edges=True)
-            yield [self.cmd_base + Command.connectn(pred, succ)]
-
-        def success(self, node, action):
-            _FromConnectorsBase.success(self, node, action)
-
     class FromConnectors(ElbowBase):
         def action(self, node, **kwargs):
-            # 1. place target Edge, 2. connect pred and succ with elbow
-            yield Pipe.on(node.successors(ix=0, edges=True), strategy=Pipe.FromPoints)
-            yield IElbow.ConnectPipeTo(self.parent)
+            """
+            Main strategy
+                1. place target Edge,
+                2. connect pred and succ with elbow
+            """
+            yield Pipe.on(node.successors(ix=0, edges=True), Pipe.FromPoints)
+            yield Elbow.ConnectPipeTo(self.parent)
 
         def success(self, node, action):
             node.write(built=True)
 
-        def fail(self, node, action):
-            yield IElbow.FromGeometryPlacement(self.parent)
+    class ConnectPipeTo(ElbowBase, _FromConnectorsBase):
+        def action(self, node, **kw):
+            pred, succ = Elbow.elbow_neigh(node, edges=True)
+            yield [self.cmd_base + [pred.id, 1, succ.id, 0]]
+
+        def success(self, node, action):
+            _FromConnectorsBase.success(self, node, action)
+
+        def fail(self, node, action, msg):
+            yield Elbow.FromGeometryPlacement(self.parent)
 
     class FromGeometryPlacement(ElbowBase):
         base_val = Cmds.FamilyOnPoint.value
 
         def action(self, node, **kwargs):
-            n1, n2 = node.predecessors(ix=0), node.successors(ix=0)
+            n1, n2 = Elbow.elbow_neigh(node)
             xform = Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)
             yield [self.cmd_base + [self.fam] + xform]
 
-        def success(self, node, **kwargs):
-            pred, succ = node.predecessors(ix=0), node.successors(ix=0)
-            yield Pipe.on(pred, strategy=Pipe.ConnectEndToNode)
-            yield Pipe.on(succ, strategy=Pipe.ConnectStartToNode)
+        def success(self, node, action):
+            pred, succ = Elbow.elbow_neigh(node, edges=True)
+            yield Pipe.on(pred, Pipe.ConnectEndToNode)
+            yield Pipe.on(succ, Pipe.ConnectStartToNode)
 
 
 class Coupling(rvb.ICommandManager):
@@ -617,45 +642,57 @@ class Coupling(rvb.ICommandManager):
         self._strategies = [ self.FromConnectors ]
         self._init_strategy(strategy, **kwargs)
 
-    class CouplingBase(_GeomPlacementBase):
+    @staticmethod
+    def elbow_neigh(node, **kwargs):
+        pred = node.predecessors(ix=0, **kwargs)
+        succ = node.successors(ix=0, **kwargs)
+        return pred, succ
+
+    class CouplingBase(rvb.IStartegy):
         fam = 'Couling - Generic'
         base_val = Cmds.Coupling.value
 
-    class ConnectPipeTo(CouplingBase):
-        def action(self, node, **kw):
-            pred = node.predecessors(ix=0, edges=True)
-            succ = node.successors(ix=0, edges=True)
-            yield [self.cmd_base + Command.connectn(pred, succ)]
-
-        def success(self, node, action):
-            node.write(built=True)
-            node.predecessors(edges=True, ix=0).write(conn2=True)
-            node.successors(edges=True, ix=0).write(conn1=True)
-
     class FromConnectors(CouplingBase):
         def action(self, node, **kwargs):
-            # 1. place target Edge, 2. connect pred and succ with elbow
-            yield Pipe.on(node.successors(ix=0, edges=True), strategy=Pipe.FromPoints)
+            """
+            default strategy:
+                1. place target Edge,
+                2. connect pred and succ with a coupling
+            """
+            yield Pipe.on(node.successors(ix=0, edges=True), Pipe.FromPoints)
             yield Coupling.ConnectPipeTo(self.parent)
 
-        def success(self, node, action):
+        def success(self, node, *args):
             node.write(built=True)
 
-        def fail(self, node, action):
+        def fail(self, node, action, msg):
             yield Coupling.FromGeometryPlacement(self.parent)
 
+    class ConnectPipeTo(CouplingBase, _FromConnectorsBase):
+        def action(self, node, **kw):
+            pred, succ = Elbow.elbow_neigh(node, edges=True)
+            yield [self.cmd_base + [pred.id, 1, succ.id, 0]]
+
+        def success(self, node, action):
+            _FromConnectorsBase.success(self, node, action)
+
     class FromGeometryPlacement(CouplingBase):
+        """
+        todo - this must be face based -
+
+        """
         base_val = Cmds.FamilyOnPoint.value
 
         def action(self, node, **kwargs):
-            n1, n2 = node.predecessors(ix=0), node.successors(ix=0)
-            xform = Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)
+            in_edge, _ = Elbow.elbow_neigh(node, edges=True)
+            line = in_edge.curve.line
+            xform = Command._create_geometry_1rot(line, np.array([-1., 0, 0]))
             yield [self.cmd_base + [self.fam] + xform]
 
         def success(self, node, **kwargs):
-            pred, succ = node.predecessors(ix=0), node.successors(ix=0)
-            yield Pipe.on(pred, strategy=Pipe.ConnectEndToNode)
-            yield Pipe.on(succ, strategy=Pipe.ConnectStartToNode)
+            pred, succ = Elbow.elbow_neigh(node, edges=True)
+            yield Pipe.on(pred, Pipe.ConnectEndToNode)
+            yield Pipe.on(succ, Pipe.ConnectStartToNode)
 
 
 class ITee(rvb.ICommandManager):
@@ -733,11 +770,11 @@ class ITee(rvb.ICommandManager):
             return [self.base_val, self.obj.id, self.fam]
 
     class FromGeometryPlacement(TeeBase):
+        base_val = Cmds.FamilyOnPoint.value
+
         def action(self, node, **kwargs):
             n1, n2, _ = ITee.tee_nodes(node)
-            # print(node.id) # , n2.id, node.id)
-            yield [self.cmd_base +
-                    Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)]
+            yield [self.cmd_base + Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)]
 
     class FromConnectors(rvb.IStartegy):
         def action(self, node, **kwargs):
@@ -745,8 +782,8 @@ class ITee(rvb.ICommandManager):
             _, out1, out2 = ITee.tee_edges(node)
 
             # create the target edges.
-            yield Pipe.on(out1, strategy=Pipe.FromPoints)
-            yield Pipe.on(out2, strategy=Pipe.FromPoints)
+            yield Pipe.on(out1, Pipe.FromPoints)
+            yield Pipe.on(out2, Pipe.FromPoints)
             yield [self.cmd_base[0:2] + Command.connectn(n1, n2, tee_n)]
 
 
@@ -765,7 +802,7 @@ class Skip(rvb.ICommandManager):
             p.write(conn2=True, skipped=True)
             node.write(built=True, skipped=True)
 
-        def fail(self, node, action):
+        def fail(self, node, action, msg):
             node.write(built=False, skipped=True)
 
 
@@ -786,34 +823,31 @@ class IFamily(rvb.ICommandManager):
         base_val = Cmds.FamilyOnFace.value
 
     class FromPrevGeometryPlacement(FamBase):
-        """ todo Single Axis Euler Transformation """
         def action(self, node, **kwargs):
             edge = node.predecessors(ix=0, edges=True)
-            line = edge.curve.line
-            axis = self.parent.axis
-            geom = Command._create_geometry_1rot(line, axis)
+            geom = Command._create_geometry_1rot(edge.curve.line, self.parent.axis)
             yield [self.cmd_base + geom]
 
-        def fail(self, node, action):
+        def success(self, node, action):
+            yield [Cmds.Connect, node.id, node.id, node.predecessors(ix=0, edges=True).id]
+
+        def fail(self, node, action, msg):
             if node.nsucs == 0:
                 yield IFamily.FromFace(node)
             else:
                 yield IFamily.FromSuccGeometryPlacement(node)
 
     class FromSuccGeometryPlacement(FamBase):
-        """  """
         def action(self, node, **kwargs):
-            edge = node.successors(ix=0, edges=True)
-            line = edge.curve.line
             axis = -1 * self.parent.axis
-            geom = Command._create_geometry_1rot(line, axis)
+            edge = node.successors(ix=0, edges=True)
+            geom = Command._create_geometry_1rot(edge.curve.line, axis)
             yield [self.cmd_base + geom]
 
-        def fail(self, node, action):
+        def fail(self, node, action, msg):
             yield IFamily.FromFace(node)
 
     class FromFace(FamBase):
-        """ """
         def action(self, node, **kwargs):
             edge = node.predecessors(ix=0, edges=True)
             yield [self.cmd_base + [edge.id, 1, 0]]
@@ -822,7 +856,7 @@ class IFamily(rvb.ICommandManager):
             node.write(built=True)
             node.predecessors(ix=0, edges=True).write(conn2=True)
 
-        def fail(self, node, action):
+        def fail(self, node, action, msg):
             node.write(built=False)
 
 
@@ -831,7 +865,7 @@ _cmd_cls = {'tee': ITee,
             'coupling': Coupling,
             '$head':IFamily,
             'pipe': Pipe,
-            'elbow': IElbow,
+            'elbow': Elbow,
             }
 
 

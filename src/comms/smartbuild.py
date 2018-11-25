@@ -4,8 +4,8 @@ import networkx as nx
 from src.misc import utils
 from src.structs import node_utils as gutil
 from src.formats import revit
-import src.formats.skansk as sks
-# from src.ui import visual as V
+import traceback
+
 
 CSuccess = 'SUCCESS'
 CHandshake = 'Handshake'
@@ -78,15 +78,21 @@ class IZServer(object):
 
     # ----------------------------------------
     def on_response(self, response):
-        if response.startswith('SUCCESS'):
-            return self.on_success(response)
-        elif response.startswith('FAIL') or response.startswith('EXCEPTION'):
-            return self.on_fail(response)
-        elif response.startswith('DONE'):
-            return self.on_finish(response)
-        elif response in ['Ready', 'Handshake']:
-            return self.on_default(response)
-        return 'DONE'
+        try:
+            if response.startswith('SUCCESS'):
+                return self.on_success(response)
+            elif response.startswith('FAIL') or response.startswith('EXCEPTION'):
+                return self.on_fail(response)
+            elif response.startswith('DONE'):
+                return self.on_finish(response)
+            elif response in ['Ready', 'Handshake']:
+                return self.on_default(response)
+            return 'DONE'
+        except Exception as err:
+            print('\nSERVER ERROR')
+            traceback.print_tb(err.__traceback__)
+            print(err)
+            return self.on_finish()
 
 
 class Simple(IZServer):
@@ -112,7 +118,7 @@ class Simple(IZServer):
         return 'Handshake'
 
     def on_finish(self, *args):
-        return 'Done'
+        return 'END'
 
     def on_fail(self, response):
         raw_error = self[self.current]
@@ -163,23 +169,24 @@ class GraphFile(CommandFile):
     """
     def __init__(self, file_path=None, **kwargs):
         CommandFile.__init__(self, file_path=file_path)
-        self.root = None    # read-only root node of graph
-        self.q = []         # this is a list of nodes.
-        self.last_action = None  # Current action (list)
-        self.cmd_mgr = None
-        self.current_node = None
-        # print('loaded from : ', self._path)
+        self.root = None            # read-only root node of graph
+        self.q = []                 # this is a list of nodes.
+        self.last_action = None     # Current action (list)
+        self.cmd_mgr = None         #
+        self.current_node = None    #
+        self._count = 0
+        self._lim = kwargs.get('lim', None)
 
     def __len__(self):
         """ length = main q + what is in the queue """
         return len(self.q) + len(self.cmd_mgr)
 
     def reset(self):
-        # CommandFile.reset(self)
         self.current_node = None
         self.cmd_mgr = None
         self.last_action = None
-        # self._reload()
+        self._count = 0
+        self.q = []
 
     def _reload(self):
         if self._path is not None and os.path.exists(self._path) is True:
@@ -192,13 +199,18 @@ class GraphFile(CommandFile):
                 self.cmd_mgr = revit.make_actions_for(self.current_node)
 
     # resolution ------------
+    def on_finish(self, *args):
+        self.reset()
+        self._reload()
+        return 'END'
+
     def on_fail(self, response):
-        self.cmd_mgr.on_fail(self.last_action )
+        self.cmd_mgr.on_fail(self.last_action, response)
         return self.on_default(response)
 
     def on_success(self, response):
         """ set the command_mgr state to success """
-        self.cmd_mgr.on_success(self.last_action )
+        self.cmd_mgr.on_success(self.last_action)
         return self.on_default(response)
 
     def on_default(self, *args):
@@ -210,12 +222,16 @@ class GraphFile(CommandFile):
                 self.q.append(n)
 
             if len(self.q) == 0:   # todo not sure if needed
-                return 'DONE'
+                return self.on_finish()
 
             # set the current node, create new cmd_manager
             self.current_node = self.q.pop(0)
             self.cmd_mgr = revit.make_actions_for(self.current_node)
             next_action = self.cmd_mgr.next_action()
+
+        self._count += 1
+        if self._lim is not None and self._count > self._lim:
+            return self.on_finish()
 
         self.last_action = next_action
         return 'COMMAND,' + stringify(next_action)

@@ -1,6 +1,5 @@
-from collections import OrderedDict as odict
 from src.structs import Node, Edge
-from copy import deepcopy
+
 
 def is_complete(graph_obj):
     if isinstance(graph_obj, Node) and graph_obj.get('built', None) is True:
@@ -15,6 +14,8 @@ def is_complete(graph_obj):
 
 class IStartegy(object):
     """
+
+    q: list of
     """
     base_val = None
 
@@ -63,7 +64,7 @@ class IStartegy(object):
         """
         yield None
 
-    def fail(self, gobj, action):
+    def fail(self, gobj, action, msg):
         """
         todo add a failure message argument to this interface
         """
@@ -109,6 +110,8 @@ class IStartegy(object):
                 res.append(o)
             elif isinstance(o, list):
                 res += IStartegy._unwrap(o)
+            elif o is None:
+                continue
             else:
                 res.append(o)
         return res
@@ -133,7 +136,7 @@ class IStartegy(object):
         else:
             print('index warning')
 
-    def on_fail(self, action):
+    def on_fail(self, *args):
         """
         if the action is the one self is expecting
             - overwrite the queue with what to do in case of failure.
@@ -141,12 +144,12 @@ class IStartegy(object):
 
         otherwise, send the action success signal down the tree
         """
-        if self._q[self._pos] == action:
+        if self._q[self._pos] == args[0]:
             self._failed = True
-            self._q = self._unwrap(self.fail(self.obj, action))
+            self._q = self._unwrap(self.fail(self.obj, *args))
             self._pos = 0
         else:
-            self._q[self._pos].on_fail(action)
+            self._q[self._pos].on_fail(*args)
 
     def _build_actions(self,  **kwargs):
         """
@@ -194,36 +197,33 @@ class ICommandManager(object):
     """
     Granular control over generating actions
 
-    CommandManager
+    CommandManager is a wrapper for concrete instruction generation.
+    Superclasses can define conditions or how specific families, types, etc are built
+
+    THere is a one to one relationship of this to a node, so it keeps
+    all the information +
 
     attrs: graph_obj (Node or Edge) this object operates on
-    strategy: IStrategy current strategy
-
-
+    state: root node of IStrategy tree
 
     """
     __def_in_node = '__creator'
 
     def __init__(self,
-                 graph_obj,
-                 dynamic=False, **kwargs):
+                 graph_obj, **kwargs):
         self._graph_obj = graph_obj
-        self._dynamic = dynamic
-        self.strategy = None
         self._strategies = []
-        self._active = []
         self._state = None
 
     def next_action(self):
         return self._state.next_action()
 
+    def add_action(self, strategy):
+        self._state.add_commands(strategy)
+
     def _init_strategy(self, strategy=None, **kwargs):
         """
         setup the strategy object
-
-        :param strategy:
-        :param kwargs:
-        :return:
         """
         rstrategy = None
         if strategy is not None:
@@ -234,20 +234,19 @@ class ICommandManager(object):
                 rstrategy = strategy(self, **kwargs)
         elif len(self._strategies) > 0:
             rstrategy = self._strategies.pop(0)(self, **kwargs)
-        if rstrategy is not None:
-            self._state = rstrategy
+        self._state = rstrategy
 
     def on_success(self, action):
         """ communicate the succeeded action """
         self._state.on_success(action)
 
-    def on_fail(self, action):
+    def on_fail(self, action, message=None):
         """
-        if there is a failure, retrieve next strategy and initialize
+        communicate failure down the chain
         :param action: list(RevitCommand)
         :return: None
         """
-        self._state.on_fail(action)
+        self._state.on_fail(action, message)
 
     def __next__(self):
         return self.next_action()
@@ -297,9 +296,14 @@ class ICommandManager(object):
 
     @classmethod
     def on(cls, gobj, strategy=None, **kwargs):
-        com_creator = cls.action(gobj, strategy=strategy, **kwargs)
-        # strat = strategy(com_creator, **kwargs)
-        # com_creator._state.add_commands(strat)
+        # com_creator = cls.action(gobj, strategy=strategy, **kwargs)
+        com_creator = gobj.get(cls.__def_in_node, None)
+        if com_creator is None:
+            com_creator = cls(gobj, strategy=strategy, **kwargs)
+            gobj.write(cls.__def_in_node, com_creator)
+        else:
+            strat = strategy(com_creator, **kwargs)
+            com_creator.add_action(strat)
         return com_creator
 
     @classmethod

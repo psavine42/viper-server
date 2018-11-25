@@ -205,7 +205,23 @@ class TestGraphFile(unittest.TestCase):
         node = gutils.node_with_id(self.s.root, node_id)
         self._single_node_success(node)
 
+    def _test_scenario(self, node, results):
+        mgr = rvt.make_actions_for(node)
+        a = -1
+        while results and a is not None:
+            print('\n')
+            a = mgr.next_action()
+            r = results.pop(0)
+            print(a, r)
+            if r == 1:
+                mgr.on_success(a)
+            elif r == 0:
+                mgr.on_fail(a, 'x')
+            print(mgr._state)
 
+    def test_elbow_f(self):
+        node_id = 9674342137
+        node = gutils.node_with_id(self.s.root, node_id)
 
-
-
+        res = [1, 0, 1, 1, 1]
+        self._test_scenario(node, res)

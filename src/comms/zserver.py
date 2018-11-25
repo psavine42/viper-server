@@ -23,9 +23,11 @@ class ZBuilder(object):
 
             if response.startswith('SUCCESS') is False:
                 print(cnt, comm, response)
+            else:
+                print(cnt, comm, 'SUCCESS')
 
-            elif cnt % 20 == 0:
-                print('iter {}'.format(cnt) )
+            #elif cnt % 20 == 0:
+            #    print('iter {}'.format(cnt))
 
             if response == _DONE:
                 print(cnt, _DONE)
@@ -114,8 +116,8 @@ class CommandController:
         self.socket.connect(self.zmq_url)
 
     def request_web_url(self):
-        self.zmq_socket.send(b"url")
-        response = self.zmq_socket.recv().decode("utf-8")
+        self.socket.send(b"url")
+        response = self.socket.recv().decode("utf-8")
         return response
 
     def wait(self):

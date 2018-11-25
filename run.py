@@ -35,9 +35,9 @@ def run_zserver():
     server.run(instructions)
 
 
-def run_zserver_graph():
-    path = '/home/psavine/source/viper/data/out/commands/graph.pkl'
-    instructions = GraphFile(file_path=path)
+def run_zserver_graph(arg):
+    path = '/home/psavine/source/viper/data/out/commands/graphtest.pkl'
+    instructions = GraphFile(file_path=path, lim=arg.lim)
     server = ZBuilder()
     server.run(instructions)
 
@@ -45,11 +45,12 @@ def run_zserver_graph():
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('-a', '--action', type=str)
+    p.add_argument('-n', '--lim', type=int)
     arg = p.parse_args()
     if arg.action == 'z':
         run_zserver()
     elif arg.action == 'g':
-        run_zserver_graph()
+        run_zserver_graph(arg)
     else:
         run_tornado()
 
