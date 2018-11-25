@@ -87,7 +87,6 @@
       <change afterPath="$PROJECT_DIR$/../ifctograph/test/testtreegen.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../ifctograph/train.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../ifctograph/xtest.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/formats/revit_types.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../construction-crawl/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../construction-crawl/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../construction-crawl/conf/__init__.py" beforeDir="false" />
@@ -140,7 +139,6 @@
       <change beforePath="$PROJECT_DIR$/../construction-crawl/utils/util.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../sentiment-discovery/configure_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/../sentiment-discovery/configure_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../sentiment-discovery/model/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/../sentiment-discovery/model/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/Readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/dist/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/meshcat/dist/main.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/meshcat/dist/main.min.js" afterDir="false" />
@@ -158,12 +156,9 @@
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/tree.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/tree.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/zmqserver.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/servers/zmqserver.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/meshcat/src/meshcat/visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/meshcat/src/meshcat/visualizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/run.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/graph_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/spec/graph_server.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/comms/smartbuild.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/comms/smartbuild.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/comms/zserver.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/comms/zserver.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/formats/revit.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/formats/revit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/formats/revit_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/formats/revit_base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/formats/skansk.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/formats/skansk.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/misc/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/misc/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -212,7 +207,7 @@
           <entry key="js" value="1126" />
           <entry key="json" value="85" />
           <entry key="md" value="164" />
-          <entry key="py" value="139642" />
+          <entry key="py" value="139717" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
@@ -222,7 +217,7 @@
           <entry key="JavaScript" value="1126" />
           <entry key="Markdown" value="164" />
           <entry key="PLAIN_TEXT" value="134" />
-          <entry key="Python" value="139642" />
+          <entry key="Python" value="139717" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -257,7 +252,7 @@
     </session>
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.38080058">
+    <splitter split-orientation="horizontal" split-proportion="0.4102019">
       <split-first>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="525">
           <file pinned="false" current-in-tab="false">
@@ -306,27 +301,28 @@
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="true">
+          <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/misc/utils.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="866">
-                  <caret line="110" column="37" selection-start-line="110" selection-start-column="27" selection-end-line="110" selection-end-column="37" />
+                <state relative-caret-position="1226">
+                  <caret line="125" column="32" lean-forward="true" selection-start-line="125" selection-start-column="32" selection-end-line="125" selection-end-column="32" />
                   <folding>
                     <element signature="e#493#722#0" />
                     <element signature="e#751#1535#0" />
                     <element signature="e#1567#2294#0" />
-                    <marker date="1543034802370" expanded="true" signature="3807:3812" ph="..." />
+                    <marker date="1543187676371" expanded="true" signature="3762:3767" ph="..." />
                   </folding>
                 </state>
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="false">
+          <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/formats/revit_base.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="1070">
+                <state relative-caret-position="-3522">
                   <caret line="113" column="24" selection-start-line="113" selection-start-column="24" selection-end-line="113" selection-end-column="24" />
                   <folding>
+                    <element signature="e#4980#5227#1" expanded="true" />
                     <marker date="1543180779696" expanded="true" signature="838:950" ph="..." />
                     <marker date="1543180779696" expanded="true" signature="981:1010" ph="..." />
                     <marker date="1543180779696" expanded="true" signature="1142:1465" ph="..." />
@@ -356,8 +352,8 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/formats/skansk.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="-148">
-                  <caret line="852" lean-forward="true" selection-start-line="852" selection-end-line="852" />
+                <state relative-caret-position="2476">
+                  <caret line="928" lean-forward="true" selection-start-line="928" selection-end-line="928" />
                   <folding>
                     <element signature="e#1391#2484#0" />
                     <element signature="e#1539#2463#0" />
@@ -388,21 +384,20 @@
                     <element signature="e#29483#30938#0" />
                     <element signature="e#30725#30828#0" />
                     <element signature="e#32761#32857#0" />
-                    <element signature="e#32897#34860#0" />
-                    <marker date="1543002556080" expanded="true" signature="993:996" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="2546:2547" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="4089:17433" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="5390:5391" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="8651:9254" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="9292:9642" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="13826:13827" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="17408:17433" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="20635:20951" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="21822:21827" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="25518:25522" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="27026:27029" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="29702:31413" ph="..." />
-                    <marker date="1543002556080" expanded="true" signature="31412:31413" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="993:996" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="2546:2547" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="4089:17433" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="5390:5391" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="8651:9254" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="9292:9642" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="13826:13827" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="17408:17433" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="20635:20951" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="21822:21827" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="25518:25522" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="27026:27029" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="29861:30277" ph="..." />
+                    <marker date="1543187988271" expanded="true" signature="30276:30277" ph="..." />
                   </folding>
                 </state>
               </provider>
@@ -431,24 +426,24 @@
         </leaf>
       </split-first>
       <split-second>
-        <splitter split-orientation="horizontal" split-proportion="0.7481752">
+        <splitter split-orientation="horizontal" split-proportion="0.6195652">
           <split-first>
             <leaf>
               <file pinned="false" current-in-tab="true">
                 <entry file="file://$PROJECT_DIR$/src/comms/smartbuild.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="-945">
-                      <caret line="131" lean-forward="true" selection-start-line="131" selection-end-line="131" />
+                    <state relative-caret-position="2171">
+                      <caret line="208" column="40" lean-forward="true" selection-start-line="208" selection-start-column="40" selection-end-line="208" selection-end-column="40" />
                       <folding>
-                        <marker date="1543180701067" expanded="true" signature="901:1006" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="1099:1104" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="1319:1325" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="1502:1507" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="1691:1695" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="1723:1838" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="4049:4055" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="4883:5026" ph="..." />
-                        <marker date="1543180701067" expanded="true" signature="5044:5053" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="901:1006" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="1099:1104" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="1319:1325" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="1502:1507" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="1691:1695" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="1723:1838" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="4049:4055" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="4883:5026" ph="..." />
+                        <marker date="1543187624842" expanded="true" signature="5044:5053" ph="..." />
                       </folding>
                     </state>
                   </provider>
@@ -582,16 +577,16 @@
         <option value="$PROJECT_DIR$/src/ui/visual.py" />
         <option value="$PROJECT_DIR$/src/viper.py" />
         <option value="$PROJECT_DIR$/src/structs/node.py" />
-        <option value="$PROJECT_DIR$/src/formats/skansk.py" />
-        <option value="$PROJECT_DIR$/src/misc/utils.py" />
         <option value="$PROJECT_DIR$/src/structs/base.py" />
         <option value="$PROJECT_DIR$/src/comms/zserver.py" />
         <option value="$PROJECT_DIR$/run.py" />
         <option value="$PROJECT_DIR$/spec/graph_server.py" />
-        <option value="$PROJECT_DIR$/src/comms/smartbuild.py" />
         <option value="$PROJECT_DIR$/src/formats/revit_base.py" />
         <option value="$PROJECT_DIR$/src/formats/revit_types.py" />
         <option value="$PROJECT_DIR$/src/formats/revit.py" />
+        <option value="$PROJECT_DIR$/src/comms/smartbuild.py" />
+        <option value="$PROJECT_DIR$/src/misc/utils.py" />
+        <option value="$PROJECT_DIR$/src/formats/skansk.py" />
       </list>
     </option>
   </component>
@@ -1105,59 +1100,6 @@
     <entry file="file://$PROJECT_DIR$/spec/hvac.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/formats/skansk.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-148">
-          <caret line="852" lean-forward="true" selection-start-line="852" selection-end-line="852" />
-          <folding>
-            <element signature="e#1391#2484#0" />
-            <element signature="e#1539#2463#0" />
-            <element signature="e#2539#3762#0" />
-            <element signature="e#2862#3262#0" />
-            <element signature="e#3803#4027#0" />
-            <element signature="e#3939#4026#0" />
-            <element signature="e#4079#4335#0" />
-            <element signature="e#4437#4820#0" />
-            <element signature="e#4505#4820#0" />
-            <element signature="e#4849#5120#0" />
-            <element signature="e#5455#6412#0" />
-            <element signature="e#5493#5585#0" />
-            <element signature="e#6460#7621#0" />
-            <element signature="e#6592#7621#0" />
-            <element signature="e#7658#8537#0" />
-            <element signature="e#9379#9578#0" />
-            <element signature="e#9941#11385#0" />
-            <element signature="e#12986#13310#1" expanded="true" />
-            <element signature="e#20617#21240#0" />
-            <element signature="e#22800#22868#0" />
-            <element signature="e#22919#23247#0" />
-            <element signature="e#24261#27058#0" />
-            <element signature="e#24261#24323#1" expanded="true" />
-            <element signature="e#24483#25470#0" />
-            <element signature="e#27101#27317#0" />
-            <element signature="e#27482#27558#0" />
-            <element signature="e#29483#30938#0" />
-            <element signature="e#30725#30828#0" />
-            <element signature="e#32761#32857#0" />
-            <element signature="e#32897#34860#0" />
-            <marker date="1543002556080" expanded="true" signature="993:996" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="2546:2547" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="4089:17433" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="5390:5391" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="8651:9254" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="9292:9642" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="13826:13827" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="17408:17433" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="20635:20951" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="21822:21827" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="25518:25522" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="27026:27029" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="29702:31413" ph="..." />
-            <marker date="1543002556080" expanded="true" signature="31412:31413" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/structs/node.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="220">
@@ -1241,46 +1183,41 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/comms/smartbuild.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-945">
-          <caret line="131" lean-forward="true" selection-start-line="131" selection-end-line="131" />
-          <folding>
-            <marker date="1543180701067" expanded="true" signature="901:1006" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="1099:1104" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="1319:1325" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="1502:1507" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="1691:1695" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="1723:1838" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="4049:4055" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="4883:5026" ph="..." />
-            <marker date="1543180701067" expanded="true" signature="5044:5053" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/formats/revit_base.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1070">
-          <caret line="113" column="24" selection-start-line="113" selection-start-column="24" selection-end-line="113" selection-end-column="24" />
-          <folding>
-            <marker date="1543180779696" expanded="true" signature="838:950" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="981:1010" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="1142:1465" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="1399:1403" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="2473:2477" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="2495:2734" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="3219:3225" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="3576:3577" ph="..." />
-            <marker date="1543180779696" expanded="true" signature="6490:6539" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/formats/revit_types.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1161">
           <caret line="43" lean-forward="true" selection-start-line="43" selection-end-line="43" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/comms/smartbuild.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2171">
+          <caret line="208" column="40" lean-forward="true" selection-start-line="208" selection-start-column="40" selection-end-line="208" selection-end-column="40" />
+          <folding>
+            <marker date="1543187624842" expanded="true" signature="901:1006" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="1099:1104" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="1319:1325" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="1502:1507" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="1691:1695" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="1723:1838" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="4049:4055" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="4883:5026" ph="..." />
+            <marker date="1543187624842" expanded="true" signature="5044:5053" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/misc/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1226">
+          <caret line="125" column="32" lean-forward="true" selection-start-line="125" selection-start-column="32" selection-end-line="125" selection-end-column="32" />
+          <folding>
+            <element signature="e#493#722#0" />
+            <element signature="e#751#1535#0" />
+            <element signature="e#1567#2294#0" />
+            <marker date="1543187676371" expanded="true" signature="3762:3767" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1328,15 +1265,73 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/misc/utils.py">
+    <entry file="file://$PROJECT_DIR$/src/formats/skansk.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="866">
-          <caret line="110" column="37" selection-start-line="110" selection-start-column="27" selection-end-line="110" selection-end-column="37" />
+        <state relative-caret-position="2476">
+          <caret line="928" lean-forward="true" selection-start-line="928" selection-end-line="928" />
           <folding>
-            <element signature="e#493#722#0" />
-            <element signature="e#751#1535#0" />
-            <element signature="e#1567#2294#0" />
-            <marker date="1543034802370" expanded="true" signature="3807:3812" ph="..." />
+            <element signature="e#1391#2484#0" />
+            <element signature="e#1539#2463#0" />
+            <element signature="e#2539#3762#0" />
+            <element signature="e#2862#3262#0" />
+            <element signature="e#3803#4027#0" />
+            <element signature="e#3939#4026#0" />
+            <element signature="e#4079#4335#0" />
+            <element signature="e#4437#4820#0" />
+            <element signature="e#4505#4820#0" />
+            <element signature="e#4849#5120#0" />
+            <element signature="e#5455#6412#0" />
+            <element signature="e#5493#5585#0" />
+            <element signature="e#6460#7621#0" />
+            <element signature="e#6592#7621#0" />
+            <element signature="e#7658#8537#0" />
+            <element signature="e#9379#9578#0" />
+            <element signature="e#9941#11385#0" />
+            <element signature="e#12986#13310#1" expanded="true" />
+            <element signature="e#20617#21240#0" />
+            <element signature="e#22800#22868#0" />
+            <element signature="e#22919#23247#0" />
+            <element signature="e#24261#27058#0" />
+            <element signature="e#24261#24323#1" expanded="true" />
+            <element signature="e#24483#25470#0" />
+            <element signature="e#27101#27317#0" />
+            <element signature="e#27482#27558#0" />
+            <element signature="e#29483#30938#0" />
+            <element signature="e#30725#30828#0" />
+            <element signature="e#32761#32857#0" />
+            <marker date="1543187988271" expanded="true" signature="993:996" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="2546:2547" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="4089:17433" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="5390:5391" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="8651:9254" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="9292:9642" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="13826:13827" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="17408:17433" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="20635:20951" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="21822:21827" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="25518:25522" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="27026:27029" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="29861:30277" ph="..." />
+            <marker date="1543187988271" expanded="true" signature="30276:30277" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/formats/revit_base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3522">
+          <caret line="113" column="24" selection-start-line="113" selection-start-column="24" selection-end-line="113" selection-end-column="24" />
+          <folding>
+            <element signature="e#4980#5227#1" expanded="true" />
+            <marker date="1543180779696" expanded="true" signature="838:950" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="981:1010" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="1142:1465" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="1399:1403" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="2473:2477" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="2495:2734" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="3219:3225" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="3576:3577" ph="..." />
+            <marker date="1543180779696" expanded="true" signature="6490:6539" ph="..." />
           </folding>
         </state>
       </provider>

@@ -91,20 +91,17 @@ def nx_to_nodes(system):
 
 
 def nxgraph_to_nodes(G):
-    root_node = None
+    root_nodes = []
     seen = set()
     tmp = {}
     for n, data in G.nodes(data=True):
-
         if n not in seen:
             seen.add(n)
             pred = list(G.predecessors(n))
             sucs = list(G.successors(n))
-
             node = Node(n, **data)
-            # node.write(replicate_id=node.id)
             if node.get('root', None) is True:
-                root_node = node
+                root_nodes.append(node)
 
             for x in pred:
                 if x in tmp:
@@ -113,8 +110,7 @@ def nxgraph_to_nodes(G):
                 if x in tmp:
                     node.connect_to(tmp[x], **G[n][x])
             tmp[n] = node
-
-    return root_node
+    return root_nodes
 
 
 def sys_to_nx(system, G=None, **kwargs):
@@ -130,12 +126,10 @@ def nodes_to_nx(root, fwd=True, bkwd=False, G=None):
     G = G if G else nx.DiGraph()
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         G.add_node(node.geom, **{'replicate_id': node.id, **node.data, **node.tmps})
-
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         for n in node.successors():
             e = node.edge_to(n)
             G.add_edge(node.geom, n.geom, **{'replicate_id': e.id, **e.tmps})
-
     return G
 
 

@@ -642,14 +642,8 @@ class Coupling(rvb.ICommandManager):
         self._strategies = [ self.FromConnectors ]
         self._init_strategy(strategy, **kwargs)
 
-    @staticmethod
-    def elbow_neigh(node, **kwargs):
-        pred = node.predecessors(ix=0, **kwargs)
-        succ = node.successors(ix=0, **kwargs)
-        return pred, succ
-
     class CouplingBase(rvb.IStartegy):
-        fam = 'Couling - Generic'
+        fam = 'Coupling - Generic'
         base_val = Cmds.Coupling.value
 
     class FromConnectors(CouplingBase):
@@ -679,7 +673,6 @@ class Coupling(rvb.ICommandManager):
     class FromGeometryPlacement(CouplingBase):
         """
         todo - this must be face based -
-
         """
         base_val = Cmds.FamilyOnPoint.value
 

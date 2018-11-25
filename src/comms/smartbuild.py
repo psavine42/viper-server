@@ -192,10 +192,10 @@ class GraphFile(CommandFile):
         if self._path is not None and os.path.exists(self._path) is True:
             with open(self._path, 'rb') as F:
                 nx_graph = nx.read_gpickle(F)
-                root_node = utils.nxgraph_to_nodes(nx_graph)
-                self.root = root_node
-                self.q = [root_node]
-                self.current_node = root_node
+                root_nodes = utils.nxgraph_to_nodes(nx_graph)
+                self.root = root_nodes
+                self.q = root_nodes
+                self.current_node = self.q[0]
                 self.cmd_mgr = revit.make_actions_for(self.current_node)
 
     # resolution ------------
@@ -221,7 +221,7 @@ class GraphFile(CommandFile):
             for n in self.current_node.successors():
                 self.q.append(n)
 
-            if len(self.q) == 0:   # todo not sure if needed
+            if len(self.q) == 0:
                 return self.on_finish()
 
             # set the current node, create new cmd_manager

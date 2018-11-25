@@ -296,7 +296,7 @@ class ICommandManager(object):
 
     @classmethod
     def on(cls, gobj, strategy=None, **kwargs):
-        # com_creator = cls.action(gobj, strategy=strategy, **kwargs)
+
         com_creator = gobj.get(cls.__def_in_node, None)
         if com_creator is None:
             com_creator = cls(gobj, strategy=strategy, **kwargs)

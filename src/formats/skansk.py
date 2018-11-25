@@ -915,55 +915,28 @@ class MakeInstructionsV3(MakeInstructions):
         return {'main': main, 'backup': self._backups}
 
 
-def make_actions(node, shrink=None, **kwargs):
-    """
-            Generate instructions
-            """
-    # create = Command.create
-    create = Command.action
-    res = []
-    for succ_edg, succ_nd in node.successors(both=True):
-        succ_edg.write('$create', 'pipe')
-        if is_tee(node) and is_tee(succ_nd):
-            res += create(PipeCmd.Connectors, succ_edg)
+class MakeInstructionsV4(MakeInstructions):
+    def __init__(self, **kwargs):
+        super(MakeInstructions, self).__init__(**kwargs)
+        self._built = set()
 
-        elif is_tee(node) and not is_tee(succ_nd):
-            res += create(PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
-            res += create(Cmds.Connect, succ_edg, succ_nd)
+    def on_default(self, node, **kwargs):
+        for succ_edg in node.successors(edges=True):
+            succ_edg.write('$create', 'pipe')
 
-        elif not is_tee(node) and is_tee(succ_nd):
-            res += create(PipeCmd.PointConnector, succ_edg, shrink=shrink)
-            res += create(Cmds.Connect, succ_edg, node)
-        else:
-            res += create(PipeCmd.Points, succ_edg, shrink=shrink)
+        if is_head_tee(node):
+            node.write('$create', 'tee')
 
-        # ends of pipe
-        if succ_nd.nsucs == 0:
-            res += create(PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
+        elif is_coupling(node):
+            node.write('$create', 'coupling')
 
-    if is_head_tee(node):
-        node.write('$create', 'tee')
-        n1, n2, edge_tee = tee_nodes(node)
-        if n1 is None:
-            return res
-        res += create(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
-        res += create(Cmds.FamilyOnFace, edge_tee, 1, 0)
+        elif is_tee(node):
+            node.write('$create', 'tee')
 
-    elif is_coupling(node):
-        node.write('$create', 'coupling')
-        p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
-        res += create(Cmds.Coupling, p, t)
+        elif is_elbow(node):
+            node.write('$create', 'elbow')
 
-    elif is_tee(node):
-        n1, n2, _ = tee_nodes(node)
-        node.write('$create', 'tee')
-        res += create(TeeCmd.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
-
-    elif is_elbow(node):
-        node.write('$create', 'elbow')
-        res += create(ElbowCmd.Connectors, node)
-
-    return res
+        return node
 
 
 # ------------------------------------------------------------
