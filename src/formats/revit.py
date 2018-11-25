@@ -14,6 +14,12 @@ import src.geombase as geombase
 import transforms3d.taitbryan as tb
 import src.structs.node_utils as gutil
 from src.structs import Node, Edge
+import importlib
+
+import src.formats.revit_base
+# importlib.reload(src.formats.revit_base )
+import src.formats.revit_base as rvb # import IStartegy, ICommandManager
+importlib.reload(rvb)
 
 _TOLERANCE = 128    # 1/128 inch
 
@@ -97,22 +103,8 @@ _cmd_types = {'tee': TeeCmd,
               'elbow': ElbowCmd}
 
 
-
 def is_built(graph_obj):
-    if graph_obj.get('$built', None) is True:
-        return True
-    return False
-
-
-def is_complete(graph_obj):
-    if isinstance(graph_obj, Node) and graph_obj.get('built', None) is True:
-        return True
-    elif isinstance(graph_obj, Edge) \
-            and graph_obj.get('built', None) is True \
-            and graph_obj.get('conn1', None) is True \
-            and graph_obj.get('conn2', None) is True:
-        return True
-    return False
+    return rvb.is_complete(graph_obj)
 
 
 def ensure_built(graph_obj, strategy=None):
@@ -193,8 +185,21 @@ class CurvePlacement(CommandFactory):
         else:
             p1, p2 = crv.points
 
-        cdef = [Cmds.Pipe.value, CmdType.Create.value, edge.id]
+        cdef = [Cmds.Pipe.value, edge.id]
         return [cdef + [edge.id] + list(p1) + list(p2) + [r]]
+
+    @classmethod
+    def from_2points(cls, edge, shrink=None, use_radius=True, **kwargs):
+        start, end = edge.source, edge.target
+        crv = src.geom.MepCurve2d(start.geom, end.geom)
+        r = cls.radius_from_edge(edge, use_radius)
+        if shrink is not None:
+            s1 = -r / 2 if edge.source.npred == 0 is False else 0.
+            s2 = -r / 2 if edge.target.nsucs == 0 is False else 0.
+            p1, p2 = crv.extend(s1, s2).points
+        else:
+            p1, p2 = crv.points
+        return [edge.id] + list(p1) + list(p2) + [r]
 
     @classmethod
     def from_connector_point(cls, edge, use_radius=True, **kwargs):
@@ -300,16 +305,22 @@ class Command(CommandFactory):
         return [[Cmds.Elbow.value, src.id, 1, tgt.id, 0]]
 
     # Family Placement
-    @staticmethod
-    def _directs(va, tgt_cross, line1, line2, angle):
+
+    @classmethod
+    def _directed_combos(cls, fam_mat, line1, line2):
+        a11 = geo.angle_between(fam_mat[1], line1.direction)
+        a12 = geo.angle_between(fam_mat[1], line2.direction)
+        a21 = geo.angle_between(fam_mat[2], line1.direction)
+        a22 = geo.angle_between(fam_mat[2], line2.direction)
+        return a11, a12, a21, a22
+
+    @classmethod
+    def _directs(cls, va, tgt_cross, line1, line2, angle):
         eul = tb.axangle2euler(tgt_cross, angle)
         mat = tb.euler2mat(*eul)
         va2 = np.dot(mat, va.T).T
 
-        a11 = geo.angle_between(va2[1], line1.direction)
-        a12 = geo.angle_between(va2[1], line2.direction)
-        a21 = geo.angle_between(va2[2], line1.direction)
-        a22 = geo.angle_between(va2[2], line2.direction)
+        a11, a12, a21, a22 = cls._directed_combos(va2, line1, line2)
 
         t1 = np.array([a11 / line1.length, a22 / line2.length]).sum()
         t2 = np.array([a12 / line1.length, a21 / line2.length]).sum()
@@ -324,7 +335,7 @@ class Command(CommandFactory):
         return mp.get(family_name, (None, None))
 
     @classmethod
-    def _create_geometry_rot(cls, line1, line2, family=None, use_angle=False, **kw):
+    def _create_geometry_rot2(cls, line1, line2, family=None, use_angle=False, **kw):
         """
 
         :param line1:
@@ -358,10 +369,7 @@ class Command(CommandFactory):
 
         # now the normal planes are aligned, but need to get 2nd rotation
         # which occurs around target plane's normal
-        a11 = geo.angle_between(family_transformed1[1], line1.direction)
-        a12 = geo.angle_between(family_transformed1[1], line2.direction)
-        a21 = geo.angle_between(family_transformed1[2], line1.direction)
-        a22 = geo.angle_between(family_transformed1[2], line2.direction)
+        a11, a12, a21, a22 = cls._directed_combos(family_transformed1, line1, line2)
         tests = [a11, -a11, a12, -a12, a21, -a21, a22, -a22]
 
         final_angle, best = 0, 1e6
@@ -379,6 +387,20 @@ class Command(CommandFactory):
         return line1.numpy[0].tolist() + tsf1 + tsf2
 
     @classmethod
+    def _create_geometry_1rot(cls, line1, family_axis):
+        """
+
+        :param line1: axis of
+        :param family_axis: unit vector of direction to align to
+        :return: list(7)  of [ placement_x, placement_y, placement_z, vec1, vec2, vec3, rotation_angle ]
+        """
+        M = geo.rotation_matrix(family_axis, line1.unit_vector)
+        zrot, yrot, xrot = tb.mat2euler(M)
+        axis, angle = tb.euler2axangle(zrot, yrot, xrot)
+        place_point = line1.numpy[0].tolist()
+        return place_point + axis.tolist() + [angle]
+
+    @classmethod
     def place_family_point_angle(cls, node_in, node, node_up, family=None, **kwargs):
         """
         families default to placement at 0,0,0 with base connector at (-1,0,0)
@@ -390,7 +412,7 @@ class Command(CommandFactory):
         line1 = geo.Line(geo.Point(node.as_np), geo.Point(node_in.as_np))
         line2 = geo.Line(geo.Point(node.as_np), geo.Point(node_up.as_np))
 
-        xforms = cls._create_geometry_rot(line1, line2, family=family, **kwargs)
+        xforms = cls._create_geometry_rot2(line1, line2, family=family, **kwargs)
         t_edge = gutil.edge_between(node_in, node)
         radius = CurvePlacement.radius_from_edge(t_edge) * 0.5
 
@@ -408,7 +430,7 @@ class Command(CommandFactory):
         line1 = geo.Line(geo.Point(node.as_np), geo.Point(node_in.as_np))
         line2 = geo.Line(geo.Point(node.as_np), geo.Point(node_up.as_np))
 
-        xforms = cls._create_geometry_rot(line1, line2, family=family, **kwargs)
+        xforms = cls._create_geometry_rot2(line1, line2, family=family, **kwargs)
         t_edge = gutil.edge_between(node_in, node)
         radius = CurvePlacement.radius_from_edge(t_edge) * 0.5
         return xforms + [radius]
@@ -431,209 +453,216 @@ class Command(CommandFactory):
             }
 
 
+# build Strategies ----------------------------------------------
+class Pipe(rvb.ICommandManager):
+    def __init__(self, graph_obj, strategy=None, **kwargs):
+        super(Pipe, self).__init__(graph_obj, **kwargs)
+        self._strategies = [self.ConnectorPoint, self.FromPoints]
+        self._init_strategy(strategy, **kwargs)
 
-    @classmethod
-    def action(cls, cmd, *data, **kwargs):
-        klass = cls.get_cls_map().get(cmd.__class__, None)
-        if klass:
-            return klass.create(cmd, *data, **kwargs)
+    class PipeBase(rvb.IStartegy):
+        base_val = Cmds.Pipe.value
+        sub_cmd = -1
 
-
-class IStartegy(object):
-    def __init__(self):
-        self._actions = []
-
-    def make_action(self, node, action):
-        raise NotImplemented('concrete action not implemented')
-
-    def on_success(self, node, action):
-        raise NotImplemented('concrete action not implemented')
-
-    def on_fail(self, node, action):
-        """ base class return no further strategies
-            superclasses will return
-        """
-        return None
-
-
-class ICommand(object):
-    """
-    Granular control over generating actions
-
-
-    """
-    __def_in_node = '__creator'
-
-    def __init__(self):
-        self._commands = []
-        self.strategy = None
-
-    @property
-    def strategies(self):
-        return []
-
-    def _action(self, graph_obj, strategy=None, **kwargs):
-        """
-
-        :param graph_obj:
-        :param strategy:
-        :param kwargs:
-        :return:
-        """
-        if strategy is not None:
-            if strategy in self.strategies:
-                ix = self.strategies.index(strategy)
-                self.strategy = self.strategies.pop(ix)()
-            else:
-                print(self.__class__.__name__, 'does not have ', strategy.__name__)
-        elif len(self.strategies) > 0:
-            self.strategy = self.strategies.pop(0)()
-
-        if self.strategy is not None:
-            graph_obj, cmds = self.strategy.make_action(graph_obj)
-            return graph_obj, cmds
-        return graph_obj, []
-
-    def on_success(self, node, action):
-        return self.strategy.on_success(node, action)
-
-    def on_fail(self, graph_obj, action):
-        """
-        if there is a failure, retrieve next strategy and initialize
-        :param graph_obj:
-        :param action:
-        :return:
-        """
-        new_strategy = self.strategy.on_fail(graph_obj, action)
-        if new_strategy is None:
-            return graph_obj, []
-        self.strategy = new_strategy()
-        return self.strategy.make_action(graph_obj)
-
-    @classmethod
-    def action(cls, graph_obj, **kwargs):
-        """[create_successors, create_node, connect_predecessors]"""
-        command_creator = graph_obj.get(cls.__def_in_node, None)
-        if command_creator is None:
-            command_creator = cls()
-            graph_obj.write(cls.__def_in_node, command_creator)
-        graph_obj, cmds = command_creator._action(graph_obj, **kwargs)
-        command_creator._commands = cmds
-        return graph_obj, cmds
-
-    @classmethod
-    def success(cls, graph_obj, action):
-        """
-
-        
-        :param graph_obj:
-        :param action:
-        :return:
-
-        ICommand.success(node, [[11, 50, 20]])
-        """
-        command_creator = graph_obj.get(cls.__def_in_node, None)
-        if command_creator is None:
-            print('missing __creator in ', graph_obj.id)
-            return graph_obj
-        graph_obj, cmds = command_creator.on_success(graph_obj, action)
-        return graph_obj, cmds
-
-    @classmethod
-    def fail(cls, graph_obj, action):
-
-        command_creator = graph_obj.get(cls.__def_in_node, None)
-        if command_creator is None:
-            print('missing __creator in ', graph_obj.id)
-            return graph_obj
-        graph_obj, cmds = command_creator.on_fail(graph_obj, action)
-        return graph_obj, cmds
-
-
-class IPipe(ICommand):
-    class PipeBase(object):
-        val = Cmds.Pipe.value
+        @property
+        def cmd_base(self):
+            return [self.base_val, self.obj.id, self.sub_cmd]
 
     class FromPoints(PipeBase):
-        def make_action(self, edge, **kwargs):
-            return CurvePlacement.from_points(edge, **kwargs)
+        sub_cmd = PipeCmd.Points.value
 
-        def on_success(self, edge, action):
+        def action(self, edge, **kwargs):
+            geom = CurvePlacement.from_2points(edge, **kwargs)
+            yield [self.cmd_base + geom]
+
+        def success(self, edge, action):
             edge.write(built=True)
-            return edge
 
     class ConnectorPoint(PipeBase):
-        def make_action(self, edge, **kwargs):
+        sub_cmd = PipeCmd.ConnectorPoint.value
+
+        def action(self, edge, **kwargs):
             start, end = edge.source, edge.target
             r = CurvePlacement.radius_from_edge(edge, True)
-            return [[Cmds.Pipe.value, edge.id, start.id] + list(end.geom) + [r]]
+            yield [self.cmd_base + [start.id] + list(end.geom) + [r]]
 
-        def on_success(self, edge, action):
+        def success(self, edge, action):
             edge.write(built=True, conn1=True)
-            return edge
 
-        def on_fail(self, edge,  action):
-            return IPipe.FromPoints
+        def fail(self, edge, action):
+            yield Pipe.FromPoints(edge)
+
+    class ConnectEndToNode(PipeBase):
+        sub_cmd = PipeCmd.Connectors.value
+
+        def action(self, edge, **kwargs):
+            yield [self.cmd_base + [edge.id, edge.target.id]]
+
+        def success(self, edge, action):
+            edge.write(conn2=True)
+
+    class ConnectStartToNode(PipeBase):
+        def action(self, edge, **kwargs):
+            yield [self.cmd_base + [edge.id, edge.source.id]]
+
+        def success(self, edge, action):
+            edge.write(conn1=True)
 
 
-class IElbow(ICommand):
-    fam = 'Elbow - Generic'
-    val = Cmds.Elbow.value
-    # strategy = [0, 1]
+# Template strattegies -------------------------------------------------
+class _GeomPlacementBase(rvb.IStartegy):
+    """
+    for Placing a geometry without reference to connectors
+    """
+    def success(self, node, action):
+        """
+            -record node was built
+            -yield instructions to create connections to neighbor edges
+        """
+        node.write(built=True)
+        for edge in node.successors(edges=True):
+            yield Pipe(edge, strategy=Pipe.ConnectorPoint)
+        for edge in node.predecessors(edges=True):
+            yield Pipe(edge, strategy=Pipe.ConnectEndToNode)
 
-    def __init__(self):
-        super(ICommand, self).__init__()
+    def fail(self, node, action):
+        """ if building a node fails, still generate the
+            builders for successor edges
+        """
+        node.write(built=False)
+        for edge in node.successors(edges=True):
+            yield Pipe.on(edge, strategy=Pipe.FromPoints)
 
-    class ElbowBase(IStartegy):
+
+class _FromConnectorsBase(rvb.IStartegy):
+    """
+    Template for Creating from connectors
+    Assumes that successor edges have been built and not connected
+    """
+    def _record(self, node, true_or_false):
+        """
+        """
+        node.write(built=true_or_false)
+        for edge in node.successors(edges=True):
+            edge.write(conn1=true_or_false)
+        for edge in node.predecessors(edges=True):
+            edge.write(conn2=true_or_false)
+
+    def success(self, node, action):
+        """
+        if successful,
+            - node is created
+            - predecessor edge conn2 is connected
+            - successor edge conn1 is connected
+        """
+        self._record(node, True)
+
+    def fail(self, node, action):
+        """
+        if the node cannot be built from connectors,
+        successor edges are already there so not much more to do
+        """
+        self._record(node, False)
+
+
+# Concrete Builders ----------------------------------------------
+class IElbow(rvb.ICommandManager):
+    def __init__(self, parent, strategy=None, **kwargs):
+        super(IElbow, self).__init__(parent, **kwargs)
+        self._strategies = [self.FromConnectors, self.FromGeometryPlacement]
+        self._init_strategy(strategy, **kwargs)
+
+    class ElbowBase(rvb.IStartegy):
         fam = 'Elbow - Generic'
-        val = Cmds.Elbow.value
+        base_val = Cmds.Elbow.value
+
+    class ConnectPipeTo(ElbowBase, _FromConnectorsBase):
+        def action(self, node, **kw):
+            pred = node.predecessors(ix=0, edges=True)
+            succ = node.successors(ix=0, edges=True)
+            yield [self.cmd_base + Command.connectn(pred, succ)]
+
+        def success(self, node, action):
+            _FromConnectorsBase.success(self, node, action)
 
     class FromConnectors(ElbowBase):
-        def make_action(self, node, **kwargs):
-            src_edge = node.predecessors(ix=0, edges=True)
-            tgt_edge = node.successors(ix=0, edges=True)
-
+        def action(self, node, **kwargs):
             # 1. place target Edge, 2. connect pred and succ with elbow
-            tgt_edge, cmd1 = IPipe.action(tgt_edge)
-            if not is_built(src_edge):
-                return node, cmd1
-            cmd2 = [[self.val] + Command.connectn(src_edge, tgt_edge)]
-            return node, cmd1 + cmd2
+            yield Pipe.on(node.successors(ix=0, edges=True), strategy=Pipe.FromPoints)
+            yield IElbow.ConnectPipeTo(self.parent)
 
-        def on_success(self, node, action):
-            if action[0] == Cmds.Pipe.value:
-                tgt_edge = node.successors(ix=0, edges=True)
-                tgt_edge.write(built=True, conn1=True)
-            elif action[0] == self.val:
-                node.write(built=True)
-            return node, []
+        def success(self, node, action):
+            node.write(built=True)
 
-        def on_fail(self, node, action):
-            return IElbow.FromGeometryPlacement
+        def fail(self, node, action):
+            yield IElbow.FromGeometryPlacement(self.parent)
 
     class FromGeometryPlacement(ElbowBase):
-        def make_action(self, node, **kwargs):
-            n1 = node.predecessors(ix=0)
-            n2 = node.successors(ix=0)
-            cdef = [Cmds.FamilyOnPoint.value, n2.id, self.fam]
-            return node, [cdef + Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)]
+        base_val = Cmds.FamilyOnPoint.value
 
-        def on_success(self, node, action):
-            node.write(built=True, conn1=True)
-            return node, []
+        def action(self, node, **kwargs):
+            n1, n2 = node.predecessors(ix=0), node.successors(ix=0)
+            xform = Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)
+            yield [self.cmd_base + [self.fam] + xform]
 
-    @property
-    def strategies(self):
-        return [self.FromConnectors,
-                self.FromGeometryPlacement]
+        def success(self, node, **kwargs):
+            pred, succ = node.predecessors(ix=0), node.successors(ix=0)
+            yield Pipe.on(pred, strategy=Pipe.ConnectEndToNode)
+            yield Pipe.on(succ, strategy=Pipe.ConnectStartToNode)
 
 
-class ITee(ICommand):
-    fam = 'Tee - Generic'
-    val = Cmds.Tee.value
+class Coupling(rvb.ICommandManager):
+    def __init__(self, parent, strategy=None, **kwargs):
+        super(Coupling, self).__init__(parent, **kwargs)
+        self._strategies = [ self.FromConnectors ]
+        self._init_strategy(strategy, **kwargs)
 
-    def __init__(self):
-        super(ICommand, self).__init__()
+    class CouplingBase(_GeomPlacementBase):
+        fam = 'Couling - Generic'
+        base_val = Cmds.Coupling.value
+
+    class ConnectPipeTo(CouplingBase):
+        def action(self, node, **kw):
+            pred = node.predecessors(ix=0, edges=True)
+            succ = node.successors(ix=0, edges=True)
+            yield [self.cmd_base + Command.connectn(pred, succ)]
+
+        def success(self, node, action):
+            node.write(built=True)
+            node.predecessors(edges=True, ix=0).write(conn2=True)
+            node.successors(edges=True, ix=0).write(conn1=True)
+
+    class FromConnectors(CouplingBase):
+        def action(self, node, **kwargs):
+            # 1. place target Edge, 2. connect pred and succ with elbow
+            yield Pipe.on(node.successors(ix=0, edges=True), strategy=Pipe.FromPoints)
+            yield Coupling.ConnectPipeTo(self.parent)
+
+        def success(self, node, action):
+            node.write(built=True)
+
+        def fail(self, node, action):
+            yield Coupling.FromGeometryPlacement(self.parent)
+
+    class FromGeometryPlacement(CouplingBase):
+        base_val = Cmds.FamilyOnPoint.value
+
+        def action(self, node, **kwargs):
+            n1, n2 = node.predecessors(ix=0), node.successors(ix=0)
+            xform = Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)
+            yield [self.cmd_base + [self.fam] + xform]
+
+        def success(self, node, **kwargs):
+            pred, succ = node.predecessors(ix=0), node.successors(ix=0)
+            yield Pipe.on(pred, strategy=Pipe.ConnectEndToNode)
+            yield Pipe.on(succ, strategy=Pipe.ConnectStartToNode)
+
+
+class ITee(rvb.ICommandManager):
+    def __init__(self, parent, strategy=None, **kwargs):
+        rvb.ICommandManager.__init__(self, parent,  **kwargs)
+        self._strategies = [self.FromGeometryPlacement]
+        self._init_strategy(strategy, **kwargs)
 
     @staticmethod
     def tee_nodes(node):
@@ -661,6 +690,12 @@ class ITee(ICommand):
 
             elif suc_edge1.get('tap_edge', None) is True:
                 return suc_edge2.target, suc_edge1.target, suc_edge1
+
+        elif node.nsucs == 1 and node.npred == 1:
+            suc_edge = succs[0]
+            if suc_edge.get('tap_edge', None) is True:
+                return pred.source, suc_edge.target, None
+
         return None, None, None
 
     @staticmethod
@@ -689,200 +724,122 @@ class ITee(ICommand):
                 return suc_edge2, suc_edge2, suc_edge1
         return None, None, None
 
-    class TeeBase(IStartegy):
+    class TeeBase(_GeomPlacementBase):
         fam = 'Tee - Generic'
-        val = Cmds.Tee.value
+        base_val = Cmds.Tee.value
+
+        @property
+        def cmd_base(self):
+            return [self.base_val, self.obj.id, self.fam]
 
     class FromGeometryPlacement(TeeBase):
-        def make_action(self, node, **kwargs):
+        def action(self, node, **kwargs):
             n1, n2, _ = ITee.tee_nodes(node)
-            cdef = [Cmds.FamilyOnPoint.value, node.id, self.fam]
-            return [cdef + Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)]
+            # print(node.id) # , n2.id, node.id)
+            yield [self.cmd_base +
+                    Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)]
 
-        def on_success(self, node, action):
-            if action[0] == Cmds.Pipe.value:
-                tgt_edge = node.successors(ix=0, edges=True)
-                tgt_edge.write(built=True, conn1=True)
-            elif action[0] == self.val:
-                node.write(built=True)
-            return node, []
-
-        def on_fail(self, node, action):
-            return ITee.FromConnectors
-
-    class FromConnectors(TeeBase):
-        def make_action(self, node, **kwargs):
+    class FromConnectors(rvb.IStartegy):
+        def action(self, node, **kwargs):
             n1, n2, tee_n = ITee.tee_nodes(node)
-            edgein, out1, out2 = ITee.tee_edges(node)
+            _, out1, out2 = ITee.tee_edges(node)
 
-            cdef = [[Cmds.Tee.value, node.id] + Command.connectn(n1, n2, tee_n)]
-            return
+            # create the target edges.
+            yield Pipe.on(out1, strategy=Pipe.FromPoints)
+            yield Pipe.on(out2, strategy=Pipe.FromPoints)
+            yield [self.cmd_base[0:2] + Command.connectn(n1, n2, tee_n)]
 
-        def on_success(self, node, action):
-            node.write(built=True, conn1=True)
-            return node, []
 
-    @property
-    def strategies(self):
-        return [self.FromGeometryPlacement ]
+class Skip(rvb.ICommandManager):
+    def __init__(self, parent, strategy=None, **kwargs):
+        rvb.ICommandManager.__init__(self, parent,  **kwargs)
+        self._strategies = [self.SkipOp]
+        self._init_strategy(strategy, **kwargs)
+
+    class SkipOp(_GeomPlacementBase):
+        def action(self, node, **kwargs):
+            yield [Cmds.Noop.value, -1, -1 ]
+
+        def success(self, node, action):
+            p = node.predecessors(ix=0, edges=True)
+            p.write(conn2=True, skipped=True)
+            node.write(built=True, skipped=True)
+
+        def fail(self, node, action):
+            node.write(built=False, skipped=True)
+
+
+class IFamily(rvb.ICommandManager):
+    """ """
+    def __init__(self,
+                 parent,
+                 strategy=None,
+                 fam='Coupling Generic',
+                 axis=np.array([1., 0., 0.])):
+        super(IFamily, self).__init__(parent)
+        self._strategies = [self.FromFace ]
+        self.fam = fam
+        self.axis = axis
+        self._init_strategy(strategy)
+
+    class FamBase(_GeomPlacementBase):
+        base_val = Cmds.FamilyOnFace.value
+
+    class FromPrevGeometryPlacement(FamBase):
+        """ todo Single Axis Euler Transformation """
+        def action(self, node, **kwargs):
+            edge = node.predecessors(ix=0, edges=True)
+            line = edge.curve.line
+            axis = self.parent.axis
+            geom = Command._create_geometry_1rot(line, axis)
+            yield [self.cmd_base + geom]
+
+        def fail(self, node, action):
+            if node.nsucs == 0:
+                yield IFamily.FromFace(node)
+            else:
+                yield IFamily.FromSuccGeometryPlacement(node)
+
+    class FromSuccGeometryPlacement(FamBase):
+        """  """
+        def action(self, node, **kwargs):
+            edge = node.successors(ix=0, edges=True)
+            line = edge.curve.line
+            axis = -1 * self.parent.axis
+            geom = Command._create_geometry_1rot(line, axis)
+            yield [self.cmd_base + geom]
+
+        def fail(self, node, action):
+            yield IFamily.FromFace(node)
+
+    class FromFace(FamBase):
+        """ """
+        def action(self, node, **kwargs):
+            edge = node.predecessors(ix=0, edges=True)
+            yield [self.cmd_base + [edge.id, 1, 0]]
+
+        def success(self, node, action):
+            node.write(built=True)
+            node.predecessors(ix=0, edges=True).write(conn2=True)
+
+        def fail(self, node, action):
+            node.write(built=False)
 
 
 _cmd_cls = {'tee': ITee,
-             # 'coupling': CouplingCmd,
-            'pipe': IPipe,
-            'elbow': IElbow}
+            'family': IFamily,
+            'coupling': Coupling,
+            '$head':IFamily,
+            'pipe': Pipe,
+            'elbow': IElbow,
+            }
 
 
 def make_actions_for(node):
     command_creator = _cmd_cls.get(node.get('$create', None), None)
     if command_creator is not None:
         return command_creator.action(node)
-    return node, []
+    return Skip.action(node)
 
 
-# class Elbow(CommandFactory):
-#     strategy = [0, 1]
-#
-#     @classmethod
-#     def from_two_connectors(cls, node):
-#         cmds = []
-#
-#         eprd = node.predecessors(ix=0, edges=True)
-#         etgt = node.successors(ix=0, edges=True)
-#
-#         cdef = [Cmds.Elbow.value, CmdType.BuildFull.value, node.id]
-#         return [cdef + Command.connectn(eprd, etgt)]
-#
-#     @classmethod
-#     def from_location_geom(cls, node, **kwargs):
-#         faml = 'Elbow - Generic'
-#         n1 = node.predecessors(ix=0)
-#         n2 = node.successors(ix=0)
-#         cdef = [Cmds.FamilyOnPoint.value, CmdType.Create.value, n2.id, faml]
-#         return [cdef + Command.family_point_angle(n1, node, n2, family=faml, **kwargs)]
-#
-#     @classmethod
-#     def move_connect(self, node):
-#         pass
-#
-#     @classmethod
-#     def get_func_map(cls):
-#         return {0: cls.from_two_connectors,
-#                 1: cls.from_location_geom,
-#                 2: cls.move_connect
-#                 }
-
-
-class Coupling(CommandFactory):
-    strategy = [0]  # todo 2 - implement
-
-    @classmethod
-    def from_two_connectors(cls, node):
-        eprd = node.predecessors(ix=0, edges=True)
-        etgt = node.successors(ix=0, edges=True)
-        cdef = [Cmds.Coupling.value, CmdType.BuildFull.value, node.id]
-        return [cdef + Command.connectn(eprd, etgt)]
-
-    @classmethod
-    def from_location_geom(cls, node, **kwargs):
-        return [[]]
-
-    @classmethod
-    def from_adjusted_pipes(cls):
-        return [[]]
-
-    @classmethod
-    def get_func_map(cls):
-        return \
-            {
-                0: cls.from_two_connectors,
-                1: cls.from_location_geom,
-                2: cls.from_adjusted_pipes,
-            }
-
-
-# class Tee(CommandFactory):
-#     strategy = [1, 0]
-#
-#     @staticmethod
-#     def tee_nodes(node):
-#         # assert node.get('is_tee') is True
-#         preds = node.predecessors(edges=True)
-#         succs = node.successors(edges=True)
-#         pred = preds[0] if node.npred == 1 else None
-#
-#         if node.nsucs == 2 and node.npred == 1:
-#             suc_edge1, suc_edge2 = succs
-#
-#             if suc_edge2.get('tap_edge', None) is True:
-#                 return pred.source, suc_edge2.target, suc_edge2
-#
-#             elif suc_edge1.get('tap_edge', None) is True:
-#                 return pred.source, suc_edge1.target, suc_edge1
-#
-#             elif pred.get('tap_edge', None) is True:
-#                 return suc_edge1.source, pred.target, pred
-#
-#         elif node.nsucs == 2 and node.npred == 0:
-#             suc_edge1, suc_edge2 = succs
-#             if suc_edge2.get('tap_edge', None) is True:
-#                 return suc_edge1.target, suc_edge2.target, suc_edge2
-#
-#             elif suc_edge1.get('tap_edge', None) is True:
-#                 return suc_edge2.target, suc_edge1.target, suc_edge1
-#         return None, None, None
-#
-#     @staticmethod
-#     def tee_edges(node):
-#         preds = node.predecessors(edges=True)
-#         succs = node.successors(edges=True)
-#         pred = preds[0] if node.npred == 1 else None
-#         if node.nsucs == 2 and node.npred == 1:
-#             suc_edge1, suc_edge2 = succs
-#
-#             if suc_edge2.get('tap_edge', None) is True:
-#                 return pred, suc_edge1, suc_edge2
-#
-#             elif suc_edge1.get('tap_edge', None) is True:
-#                 return pred, suc_edge2, suc_edge1
-#
-#             elif pred.get('tap_edge', None) is True:
-#                 return suc_edge1, suc_edge2, pred
-#
-#         elif node.nsucs == 2 and node.npred == 0:
-#             suc_edge1, suc_edge2 = succs
-#             if suc_edge2.get('tap_edge', None) is True:
-#                 return suc_edge1, suc_edge1, suc_edge2
-#
-#             elif suc_edge1.get('tap_edge', None) is True:
-#                 return suc_edge2, suc_edge2, suc_edge1
-#         return None, None, None
-#
-#     @classmethod
-#     def from_three_connectors(cls, node):
-#         n1, n2, tee_n = cls.tee_nodes(node)
-#         cdef = [Cmds.Tee.value, CmdType.BuildFull.value, node.id]
-#         return [cdef + Command.connectn(n1, n2, tee_n)]
-#
-#     @classmethod
-#     def from_location_geom(cls, node, **kwargs):
-#         fam = 'Tee - Generic'
-#         n1, n2, _ = cls.tee_nodes(node)
-#         cdef = [Cmds.FamilyOnPoint.value, CmdType.Create.value, node.id, fam]
-#         return [cdef + Command.family_point_angle(n1, node, n2, family=fam,  **kwargs)]
-#
-#     @classmethod
-#     def from_adjusted_pipes(cls, node, **kwargs):
-#         cmd1 = cls.from_location_geom(node, **kwargs)
-#         # [create_successors, create_node, connect_predecessors]
-#
-#
-#         return cmd1
-#
-#     @classmethod
-#     def get_func_map(cls):
-#         return {0: cls.from_three_connectors,
-#                 1: cls.from_location_geom,
-#                 2: cls.from_adjusted_pipes
-#                 }
 

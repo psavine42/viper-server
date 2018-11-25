@@ -17,7 +17,7 @@ from src.structs import Node, Edge
 import src.structs.node_utils as gutil
 from enum import Enum
 from shapely.ops import nearest_points
-from src.formats.revit import TeeCmd, ElbowCmd, CouplingCmd, Tee
+from src.formats.revit import TeeCmd, ElbowCmd, CouplingCmd
 
 _ngh_arg = dict(fwd=True, bkwd=True, edges=True)
 
@@ -654,7 +654,7 @@ class GatherTags(QueuePropogator):
 # BUILDING GRAPHS -----------------------------------------------
 import src.formats.revit
 importlib.reload(src.formats.revit)
-from src.formats.revit import Command, Cmds, PipeCmd
+from src.formats.revit import Command, Cmds, PipeCmd, ITee
 
 
 _RevitFamily = {
@@ -665,11 +665,11 @@ _RevitFamily = {
 
 
 def tee_nodes(node):
-    return Tee.tee_nodes(node)
+    return ITee.tee_nodes(node)
 
 
 def tee_edges(node):
-    return Tee.tee_edges(node)
+    return ITee.tee_edges(node)
 
 
 is_tee = lambda node: node.get('is_tee', None) is True or node.get('head_tee', None) is True
@@ -861,7 +861,7 @@ class MakeInstructionsV3(MakeInstructions):
         Generate instructions
         """
         for succ_edg, succ_nd in node.successors(both=True):
-            eid = succ_edg.id
+            succ_edg.write('$create', 'pipe')
             if is_tee(node) and is_tee(succ_nd):
                 self.add(Cmds.Pipe, PipeCmd.Connectors, succ_edg)
 
@@ -880,6 +880,7 @@ class MakeInstructionsV3(MakeInstructions):
                 self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
 
         if is_head_tee(node):
+            node.write('$create', 'tee')
             n1, n2, edge_tee = tee_nodes(node)
             if n1 is None:
                 return node
@@ -887,14 +888,17 @@ class MakeInstructionsV3(MakeInstructions):
             self.add(Cmds.FamilyOnFace, edge_tee, 1, 0)
 
         elif is_coupling(node):
+            node.write('$create', 'coupling')
             p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
             self.add(Cmds.Coupling, p, t)
 
         elif is_tee(node):
             n1, n2, _ = tee_nodes(node)
+            node.write('$create', 'tee')
             self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
 
         elif is_elbow(node):
+            node.write('$create', 'elbow')
             pe, pn = node.predecessors(ix=0, both=True)
             te, tn = node.successors(ix=0, both=True)
             line1 = geo.Line(geo.Point(node.as_np), geo.Point(pn.as_np))
@@ -960,6 +964,7 @@ def make_actions(node, shrink=None, **kwargs):
         res += create(ElbowCmd.Connectors, node)
 
     return res
+
 
 # ------------------------------------------------------------
 def resolve_heads(root_node, spr_points, tol=1.):

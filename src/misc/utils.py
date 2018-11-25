@@ -102,6 +102,7 @@ def nxgraph_to_nodes(G):
             sucs = list(G.successors(n))
 
             node = Node(n, **data)
+            # node.write(replicate_id=node.id)
             if node.get('root', None) is True:
                 root_node = node
 
@@ -128,12 +129,12 @@ def nodes_to_nx(root, fwd=True, bkwd=False, G=None):
     root.write('root', True)
     G = G if G else nx.DiGraph()
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
-        G.add_node(node.geom, **{**node.data, **node.tmps})
+        G.add_node(node.geom, **{'replicate_id': node.id, **node.data, **node.tmps})
 
     for node in root.__iter__(fwd=fwd, bkwd=bkwd):
         for n in node.successors():
             e = node.edge_to(n)
-            G.add_edge(node.geom, n.geom, **e.tmps)
+            G.add_edge(node.geom, n.geom, **{'replicate_id': e.id, **e.tmps})
 
     return G
 

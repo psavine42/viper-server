@@ -14,7 +14,7 @@ class GraphData(object):
 
     def __init__(self, **kwargs):
         self._data = kwargs
-        self._id = uid_fn()
+        self._id = uid_fn() if kwargs.get('replicate_id', None) is None else kwargs.get('replicate_id')
         self._tmp = deepcopy(self._data)
         self._cells = {}
 
@@ -51,11 +51,14 @@ class GraphData(object):
     def update(self, k, v):
         self._data[k] = v
 
-    def write(self, k, v, **kwargs):
-        if k in self._cells.keys():
-            self._cells[k].add_contents(v)
-        else:
-            self._tmp[k] = v
+    def write(self, *args, **kwargs):
+        if len(args) == 2:
+            k, v = args
+            if k in self._cells.keys():
+                self._cells[k].add_contents(v)
+            else:
+                self._tmp[k] = v
+        self._tmp.update(**kwargs)
 
     def add_cell(self, cell):
         self._cells[cell.var] = cell

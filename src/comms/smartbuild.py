@@ -130,7 +130,7 @@ class CommandFile(Simple):
         file is reloaded on each run
     """
     def __init__(self, file_path=None):
-        super(CommandFile, self).__init__()
+        Simple.__init__(self)
         self._path = file_path
         self._fail = []
         self.reset()
@@ -157,66 +157,68 @@ class CommandFile(Simple):
 
 
 class GraphFile(CommandFile):
-
     """ File containing NXGraph
         generate build instructions adaptively
 
     """
     def __init__(self, file_path=None, **kwargs):
-        super(GraphFile, self).__init__(file_path=file_path)
-        self.root = None
+        CommandFile.__init__(self, file_path=file_path)
+        self.root = None    # read-only root node of graph
         self.q = []         # this is a list of nodes.
-        self.actions = []  # list of single actions
-        self.cur_action = None
+        self.last_action = None  # Current action (list)
+        self.cmd_mgr = None
+        self.current_node = None
+        # print('loaded from : ', self._path)
 
     def __len__(self):
-        """ length = main q + num fails to resolve """
-        return len(self.q)
+        """ length = main q + what is in the queue """
+        return len(self.q) + len(self.cmd_mgr)
 
     def reset(self):
-        CommandFile.reset(self)
-        self.actions = []
-        self.cur_action = None
+        # CommandFile.reset(self)
+        self.current_node = None
+        self.cmd_mgr = None
+        self.last_action = None
+        # self._reload()
 
     def _reload(self):
         if self._path is not None and os.path.exists(self._path) is True:
-            with open(self._path, 'r') as F:
+            with open(self._path, 'rb') as F:
                 nx_graph = nx.read_gpickle(F)
                 root_node = utils.nxgraph_to_nodes(nx_graph)
                 self.root = root_node
                 self.q = [root_node]
+                self.current_node = root_node
+                self.cmd_mgr = revit.make_actions_for(self.current_node)
 
     # resolution ------------
     def on_fail(self, response):
-        cur_node = self.current
-        cur_node.write('$built', False)
-
+        self.cmd_mgr.on_fail(self.last_action )
         return self.on_default(response)
 
     def on_success(self, response):
-        cur_action = self.cur_action
-        # if cur_action[1] in [revit.CmdType.BuildFull.value]:
-        #     self.current.write(revit.Built, True)
-        #     for n in self.current.successors():
-        #         self.q.append(n)
-        #
-        # if cur_action[1] == revit.CmdType.BuildFull:
-        #     for e in self.current.successors(edges=True):
-        #         e.write('$conn1', True)
-        #     for e in self.current.predecessors(edges=True):
-        #         e.write('$conn2', True)
-
+        """ set the command_mgr state to success """
+        self.cmd_mgr.on_success(self.last_action )
         return self.on_default(response)
 
     def on_default(self, *args):
-        while len(self.actions) == 0:
-            node = self.q.pop(0)
+        next_action = self.cmd_mgr.next_action()
+        while next_action is None:
+            # the action manager for current node is done
+            # add node successors to the queue
+            for n in self.current_node.successors():
+                self.q.append(n)
 
-            node, self.actions = sks.make_actions(node)
-            self.current = node
+            if len(self.q) == 0:   # todo not sure if needed
+                return 'DONE'
 
-        self.cur_action = self.actions.pop(0)
-        return 'COMMAND,' + stringify(self.cur_action)
+            # set the current node, create new cmd_manager
+            self.current_node = self.q.pop(0)
+            self.cmd_mgr = revit.make_actions_for(self.current_node)
+            next_action = self.cmd_mgr.next_action()
+
+        self.last_action = next_action
+        return 'COMMAND,' + stringify(next_action)
 
 
 klasses = {'nx': GraphFile,
