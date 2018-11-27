@@ -1,6 +1,7 @@
 from itertools import chain
 import math
 
+
 def tuplify(np_pt):
     return tuple(np_pt.tolist())
 
@@ -20,16 +21,20 @@ def norm_angle(pred_edge, suc_edge, degrees=True):
 
 
 def edge_with_id(root_node, eid):
-    for n in root_node.__iter__(True, True):
-        for e in n.neighbors(True, True, True):
-            if e.id == eid:
-                return e
+    roots = [root_node] if not isinstance(root_node, list) else root_node
+    for root in roots:
+        for n in root.__iter__(True, True):
+            for e in n.neighbors(True, True, True):
+                if e.id == eid:
+                    return e
 
 
-def node_with_id(nd, eid):
-    for n in nd.__iter__(fwd=True, bkwd=True):
-        if n.id == eid:
-            return n
+def node_with_id(root_node, eid):
+    roots = [root_node] if not isinstance(root_node, list) else root_node
+    for root in roots:
+        for n in root.__iter__(fwd=True, bkwd=True):
+            if n.id == eid:
+                return n
 
 
 def common_node(*edges):

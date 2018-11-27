@@ -88,6 +88,13 @@ class IStartegy(object):
         st += ' {}, {}, {}'.format(self.is_built, self._succeeded, self._failed)
         return st
 
+    def __str__(self):
+        return 'Strategy:<{}>Parent:<{}>GraphObject:<{}>'.format(
+            self.__class__.__name__,
+            self.parent.__class__.__name__,
+            self.obj.id
+        )
+
     def __len__(self):
         return len(self._q)
 

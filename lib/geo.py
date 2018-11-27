@@ -189,8 +189,6 @@ class Point(object):
         return m.on_point(self)
 
     # def extend(self, start, end):
-
-
     def projected_on(self, obj):
         if isinstance(obj, Line):
             return Point(obj.r + dot(obj.t, self.r - obj.r)*obj.t)

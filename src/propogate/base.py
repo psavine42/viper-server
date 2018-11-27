@@ -143,6 +143,7 @@ class QueuePropogator(object):
                  bkwd=False,
                  both=False,
                  edges=False,
+                 verbose=False,
                  **kwargs):
         self._pop_end = 0 if dfs is True else -1
         self.fwd = fwd
@@ -150,6 +151,7 @@ class QueuePropogator(object):
         self.edges = edges
         self._both = both
         self.seen = set()
+        self._verbose = verbose
         self.q = []
         self._res = []
 
@@ -239,13 +241,13 @@ class QueuePropogator(object):
                 el = self.on_default(el,  **kwargs)
 
             for next_el in self.on_next(el):
-                # if next_el not in q:
                 self.q.append(next_el)
 
             cntr += 1
             if num_iter is not None and cntr > num_iter:
                 break
-        print(self.__class__.__name__, 'seen nodes : ', cntr)
+        if self._verbose is True:
+            print(self.__class__.__name__, 'seen nodes : ', cntr)
         return self.on_complete(node)
 
     def __repr__(self):

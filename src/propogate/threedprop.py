@@ -8,8 +8,6 @@ import numpy as np
 from scipy.spatial import kdtree
 
 
-
-
 class SpatialRoot(QueuePropogator):
     """
     Find a node that has only one connected neighbor
@@ -20,6 +18,11 @@ class SpatialRoot(QueuePropogator):
         self.dist = 0
         self.best = None
 
+    def on_first(self, node, **kwargs):
+        if not isinstance(node, list):
+            return [node]
+        return node
+
     def on_default(self, node, **kwargs):
         if len(node.neighbors(fwd=True, bkwd=True)) == 1:
             mag = np.sum(np.array(node.geom) ** 2) ** 0.5
@@ -27,6 +30,9 @@ class SpatialRoot(QueuePropogator):
                 self.dist = mag
                 self.best = node.id
         return node
+
+    def on_complete(self, node):
+        return node_with_id(node, self.best)
 
 
 class NearestTo(SpatialRoot):
@@ -38,7 +44,7 @@ class NearestTo(SpatialRoot):
     def on_default(self, node, **kwargs):
         if node.id in self._exclude:
             return node
-        mag = np.sum( (np.array(node.geom) - self._loc) ** 2) ** 0.5
+        mag = np.sum((np.array(node.geom) - self._loc) ** 2) ** 0.5
         if mag > self.dist:
             self.dist = mag
             self.best = node.id
@@ -59,11 +65,18 @@ class KDTreeIndex(QueuePropogator):
         node_id = self._index[index]
         return self.get_node(node_id)
 
-    def nearest_point(self, other):
-        """"""
-        pass
+    def get_index_id(self, index):
+        return self._index[index]
 
-    # waling interface ----------------
+    @property
+    def data(self):
+        return self._res.data
+
+    def query_ball_tree(self, other, r):
+        """"""
+        return self._res.query_ball_tree(other._res, r)
+
+    # walking interface ----------------
     def on_first(self, node, **kwargs):
         self._root = node
         if not isinstance(node, list):

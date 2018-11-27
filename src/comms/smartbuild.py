@@ -169,23 +169,29 @@ class GraphFile(CommandFile):
     """
     def __init__(self, file_path=None, **kwargs):
         CommandFile.__init__(self, file_path=file_path)
-        self.root = None            # read-only root node of graph
+        self._lim = kwargs.get('lim', None)
+        self._root = None           # read-only root node of graph
         self.q = []                 # this is a list of nodes.
         self.last_action = None     # Current action (list)
         self.cmd_mgr = None         #
         self.current_node = None    #
         self._count = 0
-        self._lim = kwargs.get('lim', None)
+        self._num_fail = 0
 
     def __len__(self):
         """ length = main q + what is in the queue """
         return len(self.q) + len(self.cmd_mgr)
+
+    @property
+    def root(self):
+        return self._root[0]
 
     def reset(self):
         self.current_node = None
         self.cmd_mgr = None
         self.last_action = None
         self._count = 0
+        self._num_fail = 0
         self.q = []
 
     def _reload(self):
@@ -193,13 +199,14 @@ class GraphFile(CommandFile):
             with open(self._path, 'rb') as F:
                 nx_graph = nx.read_gpickle(F)
                 root_nodes = utils.nxgraph_to_nodes(nx_graph)
-                self.root = root_nodes
+                self._root = root_nodes
                 self.q = root_nodes
                 self.current_node = self.q[0]
                 self.cmd_mgr = revit.make_actions_for(self.current_node)
 
     # resolution ------------
     def on_finish(self, *args):
+        print('created:{}', self._count, self._num_fail)
         self.reset()
         self._reload()
         return 'END'
@@ -211,6 +218,7 @@ class GraphFile(CommandFile):
     def on_success(self, response):
         """ set the command_mgr state to success """
         self.cmd_mgr.on_success(self.last_action)
+        self._num_fail += 1
         return self.on_default(response)
 
     def on_default(self, *args):

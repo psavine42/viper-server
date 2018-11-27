@@ -1,9 +1,10 @@
 import numpy as np
 import lib.geo as geo
-import src.structs
+
 import src.propogate as gp
-import math, src.geom
+import math
 import importlib
+
 importlib.reload(gp)
 from scipy.spatial import kdtree, distance
 import src.propogate.base
@@ -15,9 +16,10 @@ from lib.geo import Point, Line
 importlib.reload(src.structs)
 from src.structs import Node, Edge
 import src.structs.node_utils as gutil
-from enum import Enum
-from shapely.ops import nearest_points
-from src.formats.revit import TeeCmd, ElbowCmd, CouplingCmd
+import src.formats.revit
+importlib.reload(src.formats.revit)
+from src.formats.revit import Command, Cmds, PipeCmd, Tee
+
 
 _ngh_arg = dict(fwd=True, bkwd=True, edges=True)
 
@@ -119,6 +121,62 @@ def connected_components(nodes, min_size=None):
     return root_nodes
 
 
+def kdconnect(root_nodes, trees=None, tol=0.75):
+    from networkx.algorithms.components import connected_components
+    import networkx as nx
+
+    cnt1, cnt2 = 0, 0
+    # make trees if they were not added before
+    if trees is None:
+        trees = []
+        for node in root_nodes:
+            tr = gp.KDTreeIndex(fwd=True, bkwd=True)
+            _ = tr(node)
+            trees.append(tr)
+
+    # get a ndoe count for validation
+    for node in root_nodes:
+        cnt1 += len(list(node.__iter__(fwd=True, bkwd=True)))
+
+    gg = nx.Graph()
+    for i in range(len(trees)):
+        ti = trees[i]
+        for j in range(i+1, len(trees)):
+            tj = trees[j]
+            res_ij = ti.query_ball_tree(tj, tol)
+            adj = [(di, x) for di, x in enumerate(res_ij) if len(x) > 0]
+            if any(adj):
+                # unique indicies from tree_i and tree_j
+                un_tix = np.unique([i for i, j in adj])
+                un_tjx = np.unique([j for i, j in adj])
+                # closest points between unique positions
+                dists = distance.cdist(ti.data[un_tix], tj.data[un_tjx])
+                armi = np.unravel_index(np.argmin(dists, axis=None), dists.shape)
+
+                # retrieve node ids from respective trees, and connect
+                node_id1 = ti.get_index_id(un_tix[armi[0]])
+                node_id2 = tj.get_index_id(un_tjx[armi[1]])
+                ndi = gutil.node_with_id(root_nodes[i], node_id1)
+                ndj = gutil.node_with_id(root_nodes[j], node_id2)
+                ndi.connect_to(ndj, is_pipe=True)
+                # add root indexes to component graph
+                gg.add_edge(i, j)
+
+    final_roots = []
+    # gather new root nodes using connected_component algorithm
+    for component in connected_components(gg):
+        # pick a random index from the set ...
+        ix = list(component)[0]
+        a_root = root_nodes[ix]
+        cnt2 += len(list(a_root.__iter__(fwd=True, bkwd=True)))
+        final_roots.append(a_root)
+
+    # sanity check - number of nodes should not have changed
+    assert cnt1 == cnt2, 'unequal number of nodes before and after merge'
+    return final_roots
+
+
+# utils--------------------------------------------------------------------
 def direction_best(edge1, edge2):
     crv1 = edge1.curve if isinstance(edge1, Edge) else edge1
     crv2 = edge2.curve if isinstance(edge2, Edge) else edge2
@@ -205,85 +263,6 @@ class DetectElbows(QueuePropogator):
             self._res.add(edge.id)
 
         return edge
-
-
-class ResolveElbowEdge(QueuePropogator):
-    def __init__(self):
-        QueuePropogator.__init__(self, fwd=True, edges=True)
-
-    def on_default(self, edge, **kwargs):
-        """
-        [src]
-        ======+
-              \ [edge]
-              +
-             || [tgt_edge]
-              +
-              \ [neigh1]
-              +============ [pipe]
-
-        [src]
-        ======+
-              \ [edge]
-              +
-             || [tgt_edge]
-              +============ [pipe]
-        """
-        if edge.get('is_elbow', None) is not True:
-            return edge
-        src = edge.source
-        tgt = edge.target
-        srcs = [x for x in src.neighbors(fwd=False, edges=True, bkwd=True) ]
-        tgts = [x for x in tgt.neighbors(edges=True) ]
-        if len(srcs) != 1 or len(tgts) != 1:
-            return edge
-        src_edge, tgt_edge = srcs[0], tgts[0]
-        angle = gutil.norm_angle(src_edge, tgt_edge)
-        if angle > _REVIT_ANGLE:
-            # elbow - try to abstract
-            if tgt_edge.target.nsucs == 1:
-                neigh1 = tgt_edge.target.neighbors(edges=True)[0]
-                if not _is_pipe(neigh1):
-                    pass
-            pass
-        return edge
-
-
-def resolve_elbow_edge(edge):
-    """
-    [src]
-    ======+
-          \ [edge]
-          +
-         || [tgt_edge]
-          +
-          \ [neigh1]
-          +============ [pipe]
-
-    [src]
-    ======+
-          \ [edge]
-          +
-         || [tgt_edge]
-          +============ [pipe]
-    """
-    if edge.get('is_elbow', None) is not True:
-        return edge
-    src = edge.source
-    tgt = edge.target
-    srcs = [x for x in src.neighbors(fwd=False, edges=True, bkwd=True)]
-    tgts = [x for x in tgt.neighbors(edges=True)]
-    if len(srcs) != 1 or len(tgts) != 1:
-        return edge
-    src_edge, tgt_edge = srcs[0], tgts[0]
-    angle = gutil.norm_angle(src_edge, tgt_edge)
-    if angle > _REVIT_ANGLE:
-        # elbow - try to abstract
-        if tgt_edge.target.nsucs == 1:
-            neigh1 = tgt_edge.target.neighbors(edges=True)[0]
-            if not _is_pipe(neigh1):
-                pass
-        pass
 
 
 def _label_one_one(node, tol=_ELBOW_COUPLING_TOL):
@@ -406,9 +385,6 @@ def add_ups(node, h=0.1, **kwargs):
         node.write('head_tee', True)
         new.write('$create', '$head')
     return node
-
-
-vert = lambda x, tol: 1 - np.abs(gutil.slope(x)) < tol
 
 
 def is_vertical(edge, tol=0.005):
@@ -550,12 +526,6 @@ def tap_is_other(node_in, tap_node, node_out2, new_pnt):
     return node_in
 
 
-# -- todo ------------------------------------------------------
-def kdconnect(kdindexes):
-    """"""
-    return
-
-
 def resolve_elbow_edges(node, lim=2/12, **kwargs):
     """
     [inn_edge]   [node]
@@ -581,12 +551,9 @@ def resolve_elbow_edges(node, lim=2/12, **kwargs):
         pp1 = bl1.points[1].projected_on(out_line)
         pp2 = bl2.points[0].projected_on(inn_line)
         dst = pp1.distance_to(pp2)
-        # print(node.id, dst)
         if dst < lim:
-            # new_tgt = out_edge.target
             node.geom = gutil.tuplify(pp1.midpoint_to(pp2).numpy)
             node.connect_to(out_node, **out_edge.tmps)
-            # edge.disconnect()
             tgt.deref()
             edge.delete()
             out_edge.delete()
@@ -625,7 +592,6 @@ class LongestPath(QueuePropogator):
     def on_next(self, node):
         sucs = node.successors()
         if len(sucs) > 1:
-
             score, bestix = -1, -1
             for i, suc in enumerate(sucs):
                 this_score = len(list(suc.__iter__(fwd=True)))
@@ -640,7 +606,6 @@ class LongestPath(QueuePropogator):
             return sucs
 
 
-
 class GatherTags(QueuePropogator):
     def __init__(self):
         super(GatherTags, self).__init__()
@@ -651,12 +616,7 @@ class GatherTags(QueuePropogator):
         return node
 
 
-# BUILDING GRAPHS -----------------------------------------------
-import src.formats.revit
-importlib.reload(src.formats.revit)
-from src.formats.revit import Command, Cmds, PipeCmd, ITee
-
-
+# ----------------------------------------------------
 _RevitFamily = {
     'is_tee': 'Tee - Generic',
     'is_elbow': 'Elbow - Generic',
@@ -665,11 +625,11 @@ _RevitFamily = {
 
 
 def tee_nodes(node):
-    return ITee.tee_nodes(node)
+    return Tee.tee_nodes(node)
 
 
 def tee_edges(node):
-    return ITee.tee_edges(node)
+    return Tee.tee_edges(node)
 
 
 is_tee = lambda node: node.get('is_tee', None) is True or node.get('head_tee', None) is True
@@ -848,73 +808,6 @@ class MakeInstructionsNodeBased(MakeInstructions):
         return node
 
 
-class MakeInstructionsV3(MakeInstructions):
-    final_order = [Cmds.FamilyOnPoint, Cmds.Pipe, Cmds.Noop]
-
-    def __init__(self, **kwargs):
-        super(MakeInstructions, self).__init__(**kwargs)
-        self._built = set()
-        self._backups = {}
-
-    def on_default(self, node, shrink=None, **kwargs):
-        """
-        Generate instructions
-        """
-        for succ_edg, succ_nd in node.successors(both=True):
-            succ_edg.write('$create', 'pipe')
-            if is_tee(node) and is_tee(succ_nd):
-                self.add(Cmds.Pipe, PipeCmd.Connectors, succ_edg)
-
-            elif is_tee(node) and not is_tee(succ_nd):
-                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
-                self.add(Cmds.Connect, succ_edg, succ_nd)
-
-            elif not is_tee(node) and is_tee(succ_nd):
-                self.add(Cmds.Pipe, PipeCmd.PointConnector, succ_edg, shrink=shrink)
-                self.add(Cmds.Connect, succ_edg, node)
-            else:
-                self.add(Cmds.Pipe, PipeCmd.Points, succ_edg, shrink=shrink)
-
-            # ends of pipe
-            if succ_nd.nsucs == 0:
-                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, succ_edg, shrink=shrink)
-
-        if is_head_tee(node):
-            node.write('$create', 'tee')
-            n1, n2, edge_tee = tee_nodes(node)
-            if n1 is None:
-                return node
-            self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
-            self.add(Cmds.FamilyOnFace, edge_tee, 1, 0)
-
-        elif is_coupling(node):
-            node.write('$create', 'coupling')
-            p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
-            self.add(Cmds.Coupling, p, t)
-
-        elif is_tee(node):
-            n1, n2, _ = tee_nodes(node)
-            node.write('$create', 'tee')
-            self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
-
-        elif is_elbow(node):
-            node.write('$create', 'elbow')
-            pe, pn = node.predecessors(ix=0, both=True)
-            te, tn = node.successors(ix=0, both=True)
-            line1 = geo.Line(geo.Point(node.as_np), geo.Point(pn.as_np))
-            line2 = geo.Line(geo.Point(node.as_np), geo.Point(tn.as_np))
-            if np.dot(line1.unit_vector, line2.unit_vector) > 0:
-                self.add(Cmds.Elbow, pe, te)
-            else:
-                self.add(Cmds.FamilyOnPoint, pn, node, tn, family='Elbow - Generic')
-
-        return node
-
-    def on_complete2(self):
-        main = self._on_complete_ovr(self._res)
-        return {'main': main, 'backup': self._backups}
-
-
 class MakeInstructionsV4(MakeInstructions):
     def __init__(self, **kwargs):
         super(MakeInstructions, self).__init__(**kwargs)
@@ -938,13 +831,15 @@ class MakeInstructionsV4(MakeInstructions):
 
         return node
 
+    def on_complete(self, node):
+        return node
+
 
 # ------------------------------------------------------------
 def resolve_heads(root_node, spr_points, tol=1.):
     kdprop = gp.KDTreeIndex()
     _ = kdprop(root_node)
     data = np.array(kdprop._data)
-
     for six, spr in enumerate(spr_points):
         cdist = distance.cdist([spr], data)[0]
         if np.min(cdist) < tol:
@@ -986,4 +881,83 @@ def connect_heads2(node):
             new_main.connect_to(s, **data)
         rem_node.deref()
         return
+
+
+# class ResolveElbowEdge(QueuePropogator):
+#     def __init__(self):
+#         QueuePropogator.__init__(self, fwd=True, edges=True)
+#
+#     def on_default(self, edge, **kwargs):
+#         """
+#         [src]
+#         ======+
+#               \ [edge]
+#               +
+#              || [tgt_edge]
+#               +
+#               \ [neigh1]
+#               +============ [pipe]
+#
+#         [src]
+#         ======+
+#               \ [edge]
+#               +
+#              || [tgt_edge]
+#               +============ [pipe]
+#         """
+#         if edge.get('is_elbow', None) is not True:
+#             return edge
+#         src = edge.source
+#         tgt = edge.target
+#         srcs = [x for x in src.neighbors(fwd=False, edges=True, bkwd=True) ]
+#         tgts = [x for x in tgt.neighbors(edges=True) ]
+#         if len(srcs) != 1 or len(tgts) != 1:
+#             return edge
+#         src_edge, tgt_edge = srcs[0], tgts[0]
+#         angle = gutil.norm_angle(src_edge, tgt_edge)
+#         if angle > _REVIT_ANGLE:
+#             # elbow - try to abstract
+#             if tgt_edge.target.nsucs == 1:
+#                 neigh1 = tgt_edge.target.neighbors(edges=True)[0]
+#                 if not _is_pipe(neigh1):
+#                     pass
+#             pass
+#         return edge
+
+
+# def resolve_elbow_edge(edge):
+#     """
+#     [src]
+#     ======+
+#           \ [edge]
+#           +
+#          || [tgt_edge]
+#           +
+#           \ [neigh1]
+#           +============ [pipe]
+#
+#     [src]
+#     ======+
+#           \ [edge]
+#           +
+#          || [tgt_edge]
+#           +============ [pipe]
+#     """
+#     if edge.get('is_elbow', None) is not True:
+#         return edge
+#     src = edge.source
+#     tgt = edge.target
+#     srcs = [x for x in src.neighbors(fwd=False, edges=True, bkwd=True)]
+#     tgts = [x for x in tgt.neighbors(edges=True)]
+#     if len(srcs) != 1 or len(tgts) != 1:
+#         return edge
+#     src_edge, tgt_edge = srcs[0], tgts[0]
+#     angle = gutil.norm_angle(src_edge, tgt_edge)
+#     if angle > _REVIT_ANGLE:
+#         # elbow - try to abstract
+#         if tgt_edge.target.nsucs == 1:
+#             neigh1 = tgt_edge.target.neighbors(edges=True)[0]
+#             if not _is_pipe(neigh1):
+#                 pass
+#         pass
 

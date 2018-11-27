@@ -13,11 +13,11 @@ import src.geom
 import src.geombase as geombase
 import transforms3d.taitbryan as tb
 import src.structs.node_utils as gutil
-from src.structs import Node, Edge
 import importlib
 import src.formats.revit_base
 import src.formats.revit_base as rvb
 importlib.reload(rvb)
+
 
 _TOLERANCE = 128    # 1/128 inch
 
@@ -49,20 +49,6 @@ class Cmds(Enum):
     PipeBetween = 15
 
 
-class CmdType(Enum):
-    Create = 0
-    Delete = 1
-    Update = 2
-    BuildFull = 3
-    Connect = 4
-
-
-class FamilyCmd(Enum):
-    Connectors = 0
-    LocationGeometry = 1
-    FromAdjusted = 2
-
-
 class PipeCmd(Enum):
     Connectors = 0
     Points = 1
@@ -71,63 +57,13 @@ class PipeCmd(Enum):
     MoveConnect = 4
 
 
-class CouplingCmd(Enum):
-    Connectors = 0
-    LocationGeometry = 1
-    ConnectorPoint = 2
-    MoveConnect = 4
-
-
-class ElbowCmd(Enum):
-    Connectors = 0
-    LocationGeometry = 1
-    FromAdjusted = 2
-
-
-class TeeCmd(Enum):
-    Connectors = 0
-    LocationGeometry = 1
-    FromAdjusted = 2
-
-
 _built = 'built'
 _conn1 = 'conn1'
 _conn2 = 'conn2'
 
 
-_cmd_types = {'tee': TeeCmd,
-              'coupling': CouplingCmd,
-              'pipe': PipeCmd,
-              'elbow': ElbowCmd}
-
-
 def is_built(graph_obj):
     return rvb.is_complete(graph_obj)
-
-
-def ensure_built(graph_obj, strategy=None):
-    """
-    if a graph objects needs to exist in revit env during some command,
-    while preparing that command, call this on the graph object to generate
-    commands for this object
-    :param graph_obj:
-    :return:
-    """
-    if is_built(graph_obj):
-        return []
-    klass_name = graph_obj.get('$create', None)
-    cmd = _cmd_types.get(klass_name, None)
-    klass = Command.get_cls_map().get(cmd, None)
-    if klass is None:
-        print('missing creator class', klass_name)
-        return []
-    tried = graph_obj.get('$attempts', [])
-    todo_ky = [o for o in klass.strategy if o not in tried]
-    fn = klass.get_func_map()[todo_ky]
-    if fn is None:
-        print('missing fn')
-        return []
-    return fn(graph_obj)
 
 
 class CommandFactory(object):
@@ -160,18 +96,6 @@ class CurvePlacement(CommandFactory):
             return edge.get('radius') * 2
         return 1 / 12
 
-    # Main functions --------------------------------
-    @classmethod
-    def from_connectors(cls, edge, use_radius=True, **kwargs):
-        r = cls.radius_from_edge(edge, use_radius)
-        cdef = [Cmds.Pipe.value, CmdType.BuildFull.value, edge.id]
-        return [cdef + [edge.id, edge.source.id, edge.target.id, r]]
-
-    @classmethod
-    def from_points(cls, edge, **kwargs):
-        cdef = [Cmds.Pipe.value, edge.id]
-        return [cdef + cls.from_2points(edge, **kwargs)]
-
     @classmethod
     def from_2points(cls, edge, shrink=True, use_radius=True, **kwargs):
         start, end = edge.source, edge.target
@@ -185,24 +109,36 @@ class CurvePlacement(CommandFactory):
             p1, p2 = crv.points
         return list(p1) + list(p2) + [r]
 
+    # Main functions --------------------------------
+    @classmethod
+    def from_connectors(cls, edge, use_radius=True, **kwargs):
+        r = cls.radius_from_edge(edge, use_radius)
+        cdef = [Cmds.Pipe.value, edge.id]
+        return [cdef + [edge.id, edge.source.id, edge.target.id, r]]
+
+    @classmethod
+    def from_points(cls, edge, **kwargs):
+        cdef = [Cmds.Pipe.value, edge.id]
+        return [cdef + cls.from_2points(edge, **kwargs)]
+
     @classmethod
     def from_connector_point(cls, edge, use_radius=True, **kwargs):
         start, end = edge.source, edge.target
         r = cls.radius_from_edge(edge, use_radius)
-        cdef = [Cmds.Pipe.value, CmdType.Create.value, edge.id]
+        cdef = [Cmds.Pipe.value,  edge.id]
         return [cdef + [edge.id, start.id] + list(end.geom) + [r]]
 
     # composite commands ---------------------------
     @classmethod
     def move_end_to_point(cls, edge, end_index, xyz, **kwargs):
-        cdef = [Cmds.MoveEnd.value, CmdType.Update.value, edge.id]
+        cdef = [Cmds.MoveEnd.value, edge.id]
         return [cdef + [edge.id, end_index] + xyz]
 
     @classmethod
     def move_end_to_connector(cls, edge, end=1, **kwargs):
         """ existing edge """
         tgt = edge.source if end == 0 else edge.target
-        cdef = [Cmds.MoveEnd.value, CmdType.Connect.value, edge.id]
+        cdef = [Cmds.MoveEnd.value, edge.id]
         return [cdef + [edge.id, tgt.id]]
 
     @classmethod
@@ -688,7 +624,7 @@ class Coupling(rvb.ICommandManager):
             yield Pipe.on(succ, Pipe.ConnectStartToNode)
 
 
-class ITee(rvb.ICommandManager):
+class Tee(rvb.ICommandManager):
     def __init__(self, parent, strategy=None, **kwargs):
         rvb.ICommandManager.__init__(self, parent,  **kwargs)
         self._strategies = [self.FromGeometryPlacement]
@@ -766,13 +702,13 @@ class ITee(rvb.ICommandManager):
         base_val = Cmds.FamilyOnPoint.value
 
         def action(self, node, **kwargs):
-            n1, n2, _ = ITee.tee_nodes(node)
+            n1, n2, _ = Tee.tee_nodes(node)
             yield [self.cmd_base + Command.family_point_angle(n1, node, n2, family=self.fam, **kwargs)]
 
     class FromConnectors(rvb.IStartegy):
         def action(self, node, **kwargs):
-            n1, n2, tee_n = ITee.tee_nodes(node)
-            _, out1, out2 = ITee.tee_edges(node)
+            n1, n2, tee_n = Tee.tee_nodes(node)
+            _, out1, out2 = Tee.tee_edges(node)
 
             # create the target edges.
             yield Pipe.on(out1, Pipe.FromPoints)
@@ -780,33 +716,14 @@ class ITee(rvb.ICommandManager):
             yield [self.cmd_base[0:2] + Command.connectn(n1, n2, tee_n)]
 
 
-class Skip(rvb.ICommandManager):
-    def __init__(self, parent, strategy=None, **kwargs):
-        rvb.ICommandManager.__init__(self, parent,  **kwargs)
-        self._strategies = [self.SkipOp]
-        self._init_strategy(strategy, **kwargs)
-
-    class SkipOp(_GeomPlacementBase):
-        def action(self, node, **kwargs):
-            yield [Cmds.Noop.value, -1, -1 ]
-
-        def success(self, node, action):
-            p = node.predecessors(ix=0, edges=True)
-            p.write(conn2=True, skipped=True)
-            node.write(built=True, skipped=True)
-
-        def fail(self, node, action, msg):
-            node.write(built=False, skipped=True)
-
-
-class IFamily(rvb.ICommandManager):
+class Family(rvb.ICommandManager):
     """ """
     def __init__(self,
                  parent,
                  strategy=None,
                  fam='Coupling Generic',
                  axis=np.array([1., 0., 0.])):
-        super(IFamily, self).__init__(parent)
+        super(Family, self).__init__(parent)
         self._strategies = [self.FromFace ]
         self.fam = fam
         self.axis = axis
@@ -826,9 +743,9 @@ class IFamily(rvb.ICommandManager):
 
         def fail(self, node, action, msg):
             if node.nsucs == 0:
-                yield IFamily.FromFace(node)
+                yield Family.FromFace(node)
             else:
-                yield IFamily.FromSuccGeometryPlacement(node)
+                yield Family.FromSuccGeometryPlacement(node)
 
     class FromSuccGeometryPlacement(FamBase):
         def action(self, node, **kwargs):
@@ -838,10 +755,11 @@ class IFamily(rvb.ICommandManager):
             yield [self.cmd_base + geom]
 
         def fail(self, node, action, msg):
-            yield IFamily.FromFace(node)
+            yield Family.FromFace(node)
 
     class FromFace(FamBase):
         def action(self, node, **kwargs):
+            """ [ 6, node.id, targetedge """
             edge = node.predecessors(ix=0, edges=True)
             yield [self.cmd_base + [edge.id, 1, 0]]
 
@@ -853,10 +771,29 @@ class IFamily(rvb.ICommandManager):
             node.write(built=False)
 
 
-_cmd_cls = {'tee': ITee,
-            'family': IFamily,
+class Skip(rvb.ICommandManager):
+    def __init__(self, parent, strategy=None, **kwargs):
+        rvb.ICommandManager.__init__(self, parent,  **kwargs)
+        self._strategies = [self.SkipOp]
+        self._init_strategy(strategy, **kwargs)
+
+    class SkipOp(_GeomPlacementBase):
+        def action(self, node, **kwargs):
+            yield [Cmds.Noop.value, -1, -1]
+
+        def success(self, node, action):
+            node.write(built=False, skipped=True)
+            _GeomPlacementBase.fail(self, node, action, None)
+
+        def fail(self, node, action, msg):
+            node.write(built=False, skipped=True)
+            _GeomPlacementBase.fail(self, node, action, msg)
+
+
+_cmd_cls = {'tee': Tee,
+            'family': Family,
             'coupling': Coupling,
-            '$head':IFamily,
+            '$head': Family,
             'pipe': Pipe,
             'elbow': Elbow,
             }

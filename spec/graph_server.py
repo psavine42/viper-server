@@ -5,8 +5,8 @@ import src.formats.revit as rvt
 from src.structs import Node, Edge
 import src.structs.node_utils as gutils
 
-
-_path = '/home/psavine/source/viper/data/out/commands/graphtest.pkl'
+_base_path = '/home/psavine/source/viper/data/out/commands/'
+# _path = '/home/psavine/source/viper/data/out/commands/graphtest.pkl'
 _Cmd_pipe = rvt.Cmds.Pipe.value
 _Pipe_CnPt = rvt.PipeCmd.ConnectorPoint.value
 _Pipe_PtPt = rvt.PipeCmd.Points.value
@@ -24,12 +24,14 @@ def _edge_status(edge):
 
 
 class TestGraphFile(unittest.TestCase):
+    _path = _base_path + 'graphtest.pkl'
+
     def setUp(self):
-        self.s = GraphFile(file_path=_path)
+        self.s = GraphFile(file_path=self._path)
         self.s._reload()
 
     def test_load_success(self):
-        assert os.path.exists(_path) is True, 'missing file'
+        assert os.path.exists(self._path) is True, 'missing file'
         num_ents = len(list(self.s.root.__iter__()))
         assert num_ents == 274, 'got {} ents'.format(num_ents)
         assert rvt.is_built(self.s.root) is False, msg(False, rvt.is_built(self.s.root))
@@ -99,10 +101,13 @@ class TestGraphFile(unittest.TestCase):
         h = self.s.on_first()
         resp = self.s.on_response('Ready')
         cnt = 0
-        while len(self.s) > 0 and resp != 'DONE':
+        while len(self.s) > 0 and resp not in ['END', 'DONE']:
             print(cnt, self.s.current_node.id, resp[8:12], self.s.current_node.get('$create'))
             cnt += 1
             resp = self.s.on_response('SUCCESS')
+            if resp in ['END', 'DONE']:
+                print('')
+                break
 
         assert cnt > 274
 
@@ -112,8 +117,8 @@ class TestGraphFile(unittest.TestCase):
         prev_node = self.s.current_node
 
         cnt_op = 0
-        cnt_nd = 1
-        while len(self.s) > 0 and resp != 'DONE':
+        cnt_nd = 0
+        while len(self.s) > 0 and resp not in ['END', 'DONE']:
             print(cnt_nd, cnt_op,
                   self.s.cmd_mgr.gobj.id,
                   resp[8:10],
@@ -130,7 +135,7 @@ class TestGraphFile(unittest.TestCase):
                 for e in prev_node.predecessors(edges=True):
                     self._edge_stat(e, True, True, True)
                 prev_node = self.s.cmd_mgr.gobj
-
+        print(cnt_nd)
         assert cnt_nd == 274
 
     def test_elbow_1(self):
@@ -225,3 +230,9 @@ class TestGraphFile(unittest.TestCase):
 
         res = [1, 0, 1, 1, 1]
         self._test_scenario(node, res)
+
+class TestGraphFull(TestGraphFile):
+    _path = _base_path + 'graphtest_full.pkl'
+
+
+
