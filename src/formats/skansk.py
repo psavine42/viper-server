@@ -4,19 +4,19 @@ import lib.geo as geo
 import src.propogate as gp
 import math
 import importlib
-
-importlib.reload(gp)
+import itertools
 from scipy.spatial import kdtree, distance
 import src.propogate.base
+
+importlib.reload(gp)
 importlib.reload(src.propogate.base)
 from src.propogate.base import QueuePropogator
-import itertools
 from lib.geo import Point, Line
 
 importlib.reload(src.structs)
 from src.structs import Node, Edge
 import src.structs.node_utils as gutil
-import src.formats.revit
+import src.formats.revit as revit
 importlib.reload(src.formats.revit)
 from src.formats.revit import Command, Cmds, PipeCmd, Tee
 
@@ -130,11 +130,10 @@ def kdconnect(root_nodes, trees=None, tol=0.75):
     if trees is None:
         trees = []
         for node in root_nodes:
-            tr = gp.KDTreeIndex(fwd=True, bkwd=True)
-            _ = tr(node)
+            tr = gp.KDTreeIndex(fwd=True, bkwd=True)(node)
             trees.append(tr)
 
-    # get a ndoe count for validation
+    # get a node count for validation
     for node in root_nodes:
         cnt1 += len(list(node.__iter__(fwd=True, bkwd=True)))
 
@@ -154,8 +153,8 @@ def kdconnect(root_nodes, trees=None, tol=0.75):
                 armi = np.unravel_index(np.argmin(dists, axis=None), dists.shape)
 
                 # retrieve node ids from respective trees, and connect
-                node_id1 = ti.get_index_id(un_tix[armi[0]])
-                node_id2 = tj.get_index_id(un_tjx[armi[1]])
+                node_id1 = ti[un_tix[armi[0]]]
+                node_id2 = tj[un_tjx[armi[1]]]
                 ndi = gutil.node_with_id(root_nodes[i], node_id1)
                 ndj = gutil.node_with_id(root_nodes[j], node_id2)
                 ndi.connect_to(ndj, is_pipe=True)
@@ -193,42 +192,6 @@ def similar_dir_abs(edge1, edge2, tol=1e-2):
 
 def _is_pipe(edge):
     return edge.get('is_pipe', None) is True
-
-
-def edge_iter(nd, fn=None):
-    seen = set()
-    for n in nd.__iter__(fwd=True, bkwd=True):
-        edges = n.neighbors(**_ngh_arg)
-        edges.sort(key=lambda x: x.curve.length)
-        for e in edges:
-            if e.id not in seen:
-                seen.add(e.id)
-                if fn is not None:
-                    if fn(e):
-                        yield e
-                else:
-                    yield e
-
-
-def edges_iter(edge):
-    seen = set()
-    e1 = edge_iter(edge.target, _is_pipe)
-    e2 = edge_iter(edge.source, _is_pipe)
-    its = [e1, e2]
-    while any(its):
-        for it in its:
-            v = next(it)
-            if v.id not in seen:
-                seen.add(v.id)
-                yield v
-
-
-def take_n(iter, n):
-    return [x for _, x in zip(range(n), iter)]
-
-
-def neighbor_pipes(edge, n):
-    return [x for _, x in zip(range(n), edges_iter(edge))]
 
 
 _REVIT_ANGLE = 89.0
@@ -561,6 +524,51 @@ def resolve_elbow_edges(node, lim=2/12, **kwargs):
     return node
 
 
+def resolve_heads(root_node, spr_points, tol=1.):
+    kdprop = gp.KDTreeIndex()(root_node)
+    data = np.array(kdprop.data)
+    for six, spr in enumerate(spr_points):
+        cdist = distance.cdist([spr], data)[0]
+        if np.min(cdist) < tol:
+            best_ix = np.argmin(cdist)
+            node = gutil.node_with_id(root_node, kdprop[best_ix])
+            connect_heads2(node)
+    return kdprop
+
+
+def connect_heads2(node):
+    neighs = node.neighbors(fwd=True, bkwd=True, edges=True)
+    if node.get('has_head') is True:
+        return  # node, False
+
+    elif len(neighs) == 1:
+        node.write('has_head', True)
+        return  # node, True
+
+    elif len(neighs) == 2:
+        e1, e2 = neighs
+        if _is_pipe(e1) is True and _is_pipe(e2) is False:
+            edge, data = e2, e1.tmps
+        elif _is_pipe(e1) is False and _is_pipe(e2) is True:
+            edge, data = e1, e2.tmps
+        else:
+            return
+
+        p1, p2 = edge.geom
+        center = Point(p1).midpoint_to(Point(p2))
+        new_main = edge.source
+
+        new_main.geom = gutil.tuplify(center.numpy)
+        new_main.remove_edge(edge)
+        new_main.write('has_head', True)
+
+        rem_node = edge.target
+        for s in rem_node.successors():
+            new_main.connect_to(s, **data)
+        rem_node.deref()
+        return
+
+
 # sks testing specific ------------------------------------------
 class Annotator(QueuePropogator):
     """
@@ -577,6 +585,8 @@ class Annotator(QueuePropogator):
         super(Annotator, self).__init__(**kwargs)
 
     def on_default(self, node, **kwargs):
+        """
+        """
         for k, v in self.mapping.items():
             if node.get(k, None) is True:
                 self._pos += 1
@@ -616,271 +626,219 @@ class GatherTags(QueuePropogator):
         return node
 
 
-# ----------------------------------------------------
-_RevitFamily = {
-    'is_tee': 'Tee - Generic',
-    'is_elbow': 'Elbow - Generic',
-    'is_coupling': 'Coupling - Generic'
-}
-
-
-def tee_nodes(node):
-    return Tee.tee_nodes(node)
-
-
-def tee_edges(node):
-    return Tee.tee_edges(node)
-
-
-is_tee = lambda node: node.get('is_tee', None) is True or node.get('head_tee', None) is True
-is_elbow = lambda node: node.get('is_elbow', None) is True
-is_coupling = lambda node: node.get('is_coupling', None) is True
-is_head_tee = lambda node: node.get('head_tee', None) is True
-
-
-class MakeInstructions(QueuePropogator):
-    """
-    walker version of 'SystemProcesser'
-
-    instead of geom, returns a list of instructions.
-
-    in order to ensure that geometry exists building has separate
-    bookkeeping from iteration,
-
-    """
-    final_order = [Cmds.Noop]
-
+class MakeInstructionsV4(QueuePropogator):
     def __init__(self, **kwargs):
-        QueuePropogator.__init__(self, **kwargs)
-        self._built = set()
-
-    def reset(self):
-        self._res = []
-        self._built = set()
-        self.seen = set()
-
-    def add(self, cmd, *data, **kwargs):
-        if cmd == Cmds.Pipe and data[1].id in self._built:
-            return
-        else:
-            self._res += Command.create(cmd, *data, **kwargs)
-            for e in data:
-                # ensure geometries are built
-                if isinstance(e, Edge) and e.id not in self._built:
-                    self._built.add(e.id)
-
-    def on_default(self, node, shrink=None, **kwargs):
-        """
-        Generate instructions and add them to
-
-        """
-        preds = node.predecessors(edges=True)
-        pred = preds[0] if node.npred == 1 else None
-
-        if node.get('head_tee', None) is True:
-            if node.nsucs == 2:
-                suc_edge1, suc_edge2 = node.successors(edges=True)
-                if suc_edge2.get('tap_edge', None) is True:
-                    main_out, tee_edge = suc_edge1, suc_edge2
-                elif suc_edge1.get('tap_edge', None) is True:
-                    main_out, tee_edge = suc_edge2, suc_edge1
-                else:
-                    return node
-
-                if pred is not None:
-                    # create successors
-                    self.add(Cmds.Pipe, pred, shrink=shrink)
-                    self.add(Cmds.Pipe, main_out, shrink=shrink)
-                    self.add(Cmds.Pipe, tee_edge, shrink=shrink)
-
-                    # connect tee, delete top, create on face
-                    self.add(Cmds.Tee, pred, main_out, tee_edge)
-                    # self.add(Cmds.Delete, tee_edge)
-                    self.add(Cmds.FamilyOnFace, tee_edge, 1, 0)
-                    # self.add(Cmds.FamilyOnFace, node, 2, 0)
-            return node
-
-        elif node.get('is_coupling', None) is True:
-            if pred is None or node.nsucs != 1:
-                return node
-            succ = node.successors(edges=True)[0]
-            self.add(Cmds.Pipe, succ)
-            self.add(Cmds.Coupling, pred, succ)
-            return node
-
-        elif node.get('is_tee', None) is True:
-            suc1, suc2 = node.successors(edges=True)
-            self.add(Cmds.Pipe, suc1, shrink=shrink)
-            self.add(Cmds.Pipe, suc2, shrink=shrink)
-            edgein, edgemain, edge_tap = tee_edges(node)
-            if edgein is None:
-                return node
-            self.add(Cmds.Tee, edgein, edgemain, edge_tap)
-            return node
-
-        elif node.get('is_elbow', None) is True:
-            tgt = node.successors(edges=True)[0]
-            self.add(Cmds.Pipe, tgt, shrink=shrink)
-            self.add(Cmds.Elbow, pred, tgt)
-            return node
-
-        # edge specific
-        for (edge, suc_node) in node.successors(both=True):
-
-            if edge.id in self._built:
-                continue
-
-            elif edge.get('is_pipe', None) is True:
-                self.add(Cmds.Pipe, edge, shrink=shrink)
-
-            elif edge.get('is_elbow', None) is True:
-                src = edge.source.predecessors(edges=True)[0]
-                tgt = edge.target.successors(edges=True)[0]
-                self.add(Cmds.Pipe, edge, shrink=shrink)
-                self.add(Cmds.Pipe, tgt, shrink=shrink)
-                self.add(Cmds.Elbow, src, edge)
-                self.add(Cmds.Elbow, edge, tgt)
-
-        return node
-
-    def _on_complete_ovr(self, command_list):
-        res = []
-        cmd_vls = [x.value for x in self.final_order]
-
-        rest_ix = cmd_vls.index(0)
-        arrs = [[] for i in range(len(self.final_order))]
-
-        for cmd in command_list:
-            arr_ix = cmd_vls.index(cmd[0]) if cmd[0] in cmd_vls else rest_ix
-            arrs[arr_ix].append(cmd)
-
-        for arr in arrs:
-            res += arr
-        return res
-
-    def on_complete(self, node):
-        return self._on_complete_ovr(self._res)
-
-
-class MakeInstructionsNodeBased(MakeInstructions):
-    """
-    Create Fittings then connect Pipes between them
-
-    """
-    final_order = [Cmds.Noop, Cmds.Pipe, Cmds.FamilyOnFace, Cmds.MoveEnd, Cmds.Coupling]
-
-    def __init__(self, **kwargs):
-        super(MakeInstructions, self).__init__(**kwargs)
-        self._built = set()
-
-    def on_default(self, node, shrink=None, **kwargs):
-        """
-        Generate instructions
-        """
-        for e, nd in node.successors(both=True):
-            if nd.nsucs == 0:
-                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, e, shrink=shrink)
-            elif nd.get('is_coupling', None) is True:
-                nxt_egde, nxt_node = nd.successors(both=True, ix=0)
-                self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, e, shrink=shrink)
-                self.add(Cmds.Pipe, PipeCmd.PointConnector, nxt_egde, shrink=shrink)
-            else:
-                self.add(Cmds.Pipe, PipeCmd.Connectors, e)
-
-        if node.get('head_tee', None) is True:
-            n1, n2, edge_tee = tee_nodes(node)
-            if n1 is None:
-                return node
-            self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
-            self.add(Cmds.FamilyOnFace, edge_tee, 1, 0)
-
-        elif node.get('is_coupling', None) is True:
-            p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
-            self.add(Cmds.Coupling, p, t, family='Coupling - Generic')
-
-        elif node.get('is_tee', None) is True:
-            n1, n2, _ = tee_nodes(node)
-            self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
-
-        elif node.get('is_elbow', None) is True:
-            p, t = node.predecessors(ix=0), node.successors(ix=0)
-            self.add(Cmds.FamilyOnPoint, p, node, t, family='Elbow - Generic')
-        return node
-
-
-class MakeInstructionsV4(MakeInstructions):
-    def __init__(self, **kwargs):
-        super(MakeInstructions, self).__init__(**kwargs)
+        super(QueuePropogator, self).__init__(**kwargs)
         self._built = set()
 
     def on_default(self, node, **kwargs):
         for succ_edg in node.successors(edges=True):
             succ_edg.write('$create', 'pipe')
 
-        if is_head_tee(node):
-            node.write('$create', 'tee')
+        # if is_head_tee(node):
+        #     node.write('$create', 'tee')
+        #
+        # elif is_coupling(node):
+        #     node.write('$create', 'coupling')
+        #
+        # elif is_tee(node):
+        #     node.write('$create', 'tee')
+        #
+        # elif is_elbow(node):
+        #     node.write('$create', 'elbow')
 
-        elif is_coupling(node):
-            node.write('$create', 'coupling')
-
-        elif is_tee(node):
-            node.write('$create', 'tee')
-
-        elif is_elbow(node):
-            node.write('$create', 'elbow')
-
+        cmd_mgr = revit.make_actions_for(node)
+        self._res.extend(list(iter(cmd_mgr)))
         return node
 
     def on_complete(self, node):
         return node
 
+# ----------------------------------------------------
+# _RevitFamily = {
+#     'is_tee': 'Tee - Generic',
+#     'is_elbow': 'Elbow - Generic',
+#     'is_coupling': 'Coupling - Generic'
+# }
+#
+
+# is_tee = lambda node: node.get('is_tee', None) is True or node.get('head_tee', None) is True
+# is_elbow = lambda node: node.get('is_elbow', None) is True
+# is_coupling = lambda node: node.get('is_coupling', None) is True
+# is_head_tee = lambda node: node.get('head_tee', None) is True
+
+# class MakeInstructions(QueuePropogator):
+#     """
+#     walker version of 'SystemProcesser'
+#
+#     instead of geom, returns a list of instructions.
+#
+#     in order to ensure that geometry exists building has separate
+#     bookkeeping from iteration,
+#
+#     """
+#     final_order = [Cmds.Noop]
+#
+#     def __init__(self, **kwargs):
+#         QueuePropogator.__init__(self, **kwargs)
+#         self._built = set()
+#
+#     def reset(self):
+#         self._res = []
+#         self._built = set()
+#         self.seen = set()
+#
+#     def add(self, cmd, *data, **kwargs):
+#         if cmd == Cmds.Pipe and data[1].id in self._built:
+#             return
+#         else:
+#             self._res += Command.create(cmd, *data, **kwargs)
+#             for e in data:
+#                 # ensure geometries are built
+#                 if isinstance(e, Edge) and e.id not in self._built:
+#                     self._built.add(e.id)
+#
+#     def on_default(self, node, shrink=None, **kwargs):
+#         """
+#         Generate instructions and add them to
+#
+#         """
+#         preds = node.predecessors(edges=True)
+#         pred = preds[0] if node.npred == 1 else None
+#
+#         if node.get('head_tee', None) is True:
+#             if node.nsucs == 2:
+#                 suc_edge1, suc_edge2 = node.successors(edges=True)
+#                 if suc_edge2.get('tap_edge', None) is True:
+#                     main_out, tee_edge = suc_edge1, suc_edge2
+#                 elif suc_edge1.get('tap_edge', None) is True:
+#                     main_out, tee_edge = suc_edge2, suc_edge1
+#                 else:
+#                     return node
+#
+#                 if pred is not None:
+#                     # create successors
+#                     self.add(Cmds.Pipe, pred, shrink=shrink)
+#                     self.add(Cmds.Pipe, main_out, shrink=shrink)
+#                     self.add(Cmds.Pipe, tee_edge, shrink=shrink)
+#
+#                     # connect tee, delete top, create on face
+#                     self.add(Cmds.Tee, pred, main_out, tee_edge)
+#                     # self.add(Cmds.Delete, tee_edge)
+#                     self.add(Cmds.FamilyOnFace, tee_edge, 1, 0)
+#                     # self.add(Cmds.FamilyOnFace, node, 2, 0)
+#             return node
+#
+#         elif node.get('is_coupling', None) is True:
+#             if pred is None or node.nsucs != 1:
+#                 return node
+#             succ = node.successors(edges=True)[0]
+#             self.add(Cmds.Pipe, succ)
+#             self.add(Cmds.Coupling, pred, succ)
+#             return node
+#
+#         elif node.get('is_tee', None) is True:
+#             suc1, suc2 = node.successors(edges=True)
+#             self.add(Cmds.Pipe, suc1, shrink=shrink)
+#             self.add(Cmds.Pipe, suc2, shrink=shrink)
+#             edgein, edgemain, edge_tap = Tee.tee_edges(node)
+#             if edgein is None:
+#                 return node
+#             self.add(Cmds.Tee, edgein, edgemain, edge_tap)
+#             return node
+#
+#         elif node.get('is_elbow', None) is True:
+#             tgt = node.successors(edges=True)[0]
+#             self.add(Cmds.Pipe, tgt, shrink=shrink)
+#             self.add(Cmds.Elbow, pred, tgt)
+#             return node
+#
+#         # edge specific
+#         for (edge, suc_node) in node.successors(both=True):
+#
+#             if edge.id in self._built:
+#                 continue
+#
+#             elif edge.get('is_pipe', None) is True:
+#                 self.add(Cmds.Pipe, edge, shrink=shrink)
+#
+#             elif edge.get('is_elbow', None) is True:
+#                 src = edge.source.predecessors(edges=True)[0]
+#                 tgt = edge.target.successors(edges=True)[0]
+#                 self.add(Cmds.Pipe, edge, shrink=shrink)
+#                 self.add(Cmds.Pipe, tgt, shrink=shrink)
+#                 self.add(Cmds.Elbow, src, edge)
+#                 self.add(Cmds.Elbow, edge, tgt)
+#
+#         return node
+#
+#     def _on_complete_ovr(self, command_list):
+#         res = []
+#         cmd_vls = [x.value for x in self.final_order]
+#
+#         rest_ix = cmd_vls.index(0)
+#         arrs = [[] for i in range(len(self.final_order))]
+#
+#         for cmd in command_list:
+#             arr_ix = cmd_vls.index(cmd[0]) if cmd[0] in cmd_vls else rest_ix
+#             arrs[arr_ix].append(cmd)
+#
+#         for arr in arrs:
+#             res += arr
+#         return res
+#
+#     def on_complete(self, node):
+#         return self._on_complete_ovr(self._res)
+#
+#
+# class MakeInstructionsNodeBased(MakeInstructions):
+#     """
+#     Create Fittings then connect Pipes between them
+#
+#     """
+#     final_order = [Cmds.Noop, Cmds.Pipe, Cmds.FamilyOnFace, Cmds.MoveEnd, Cmds.Coupling]
+#
+#     def __init__(self, **kwargs):
+#         super(MakeInstructions, self).__init__(**kwargs)
+#         self._built = set()
+#
+#     def on_default(self, node, shrink=None, **kwargs):
+#         """
+#         Generate instructions
+#         """
+#         for e, nd in node.successors(both=True):
+#             if nd.nsucs == 0:
+#                 self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, e, shrink=shrink)
+#             elif nd.get('is_coupling', None) is True:
+#                 nxt_egde, nxt_node = nd.successors(both=True, ix=0)
+#                 self.add(Cmds.Pipe, PipeCmd.ConnectorPoint, e, shrink=shrink)
+#                 self.add(Cmds.Pipe, PipeCmd.PointConnector, nxt_egde, shrink=shrink)
+#             else:
+#                 self.add(Cmds.Pipe, PipeCmd.Connectors, e)
+#
+#         if node.get('head_tee', None) is True:
+#             n1, n2, edge_tee = Tee.tee_nodes(node)
+#             if n1 is None:
+#                 return node
+#             self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
+#             self.add(Cmds.FamilyOnFace, edge_tee, 1, 0)
+#
+#         elif node.get('is_coupling', None) is True:
+#             p, t = node.predecessors(ix=0, edges=True), node.successors(ix=0, edges=True)
+#             self.add(Cmds.Coupling, p, t, family='Coupling - Generic')
+#
+#         elif node.get('is_tee', None) is True:
+#             n1, n2, _ = Tee.tee_nodes(node)
+#             self.add(Cmds.FamilyOnPoint, n1, node, n2, family='Tee - Generic')
+#
+#         elif node.get('is_elbow', None) is True:
+#             p, t = node.predecessors(ix=0), node.successors(ix=0)
+#             self.add(Cmds.FamilyOnPoint, p, node, t, family='Elbow - Generic')
+#         return node
+#
+#
 
 # ------------------------------------------------------------
-def resolve_heads(root_node, spr_points, tol=1.):
-    kdprop = gp.KDTreeIndex()
-    _ = kdprop(root_node)
-    data = np.array(kdprop._data)
-    for six, spr in enumerate(spr_points):
-        cdist = distance.cdist([spr], data)[0]
-        if np.min(cdist) < tol:
-            best_ix = np.argmin(cdist)
-            nd = kdprop[best_ix]
-            nde = gutil.node_with_id(root_node, nd.id)
-            connect_heads2(nde)
-    return kdprop
-
-
-def connect_heads2(node):
-    neighs = node.neighbors(fwd=True, bkwd=True, edges=True)
-    if node.get('has_head') is True:
-        return  # node, False
-
-    elif len(neighs) == 1:
-        node.write('has_head', True)
-        return  # node, True
-
-    elif len(neighs) == 2:
-        e1, e2 = neighs
-        if _is_pipe(e1) is True and _is_pipe(e2) is False:
-            edge, data = e2, e1.tmps
-        elif _is_pipe(e1) is False and _is_pipe(e2) is True:
-            edge, data = e1, e2.tmps
-        else:
-            return
-
-        p1, p2 = edge.geom
-        center = Point(p1).midpoint_to(Point(p2))
-        new_main = edge.source
-
-        new_main.geom = gutil.tuplify(center.numpy)
-        new_main.remove_edge(edge)
-        new_main.write('has_head', True)
-
-        rem_node = edge.target
-        for s in rem_node.successors():
-            new_main.connect_to(s, **data)
-        rem_node.deref()
-        return
 
 
 # class ResolveElbowEdge(QueuePropogator):
@@ -960,4 +918,40 @@ def connect_heads2(node):
 #             if not _is_pipe(neigh1):
 #                 pass
 #         pass
+
+
+# def edge_iter(nd, fn=None):
+#     seen = set()
+#     for n in nd.__iter__(fwd=True, bkwd=True):
+#         edges = n.neighbors(**_ngh_arg)
+#         edges.sort(key=lambda x: x.curve.length)
+#         for e in edges:
+#             if e.id not in seen:
+#                 seen.add(e.id)
+#                 if fn is not None:
+#                     if fn(e):
+#                         yield e
+#                 else:
+#                     yield e
+#
+#
+# def edges_iter(edge):
+#     seen = set()
+#     e1 = edge_iter(edge.target, _is_pipe)
+#     e2 = edge_iter(edge.source, _is_pipe)
+#     its = [e1, e2]
+#     while any(its):
+#         for it in its:
+#             v = next(it)
+#             if v.id not in seen:
+#                 seen.add(v.id)
+#                 yield v
+
+
+# def take_n(iter, n):
+#     return [x for _, x in zip(range(n), iter)]
+
+
+# def neighbor_pipes(edge, n):
+#     return [x for _, x in zip(range(n), edges_iter(edge))]
 

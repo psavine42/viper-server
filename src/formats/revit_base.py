@@ -258,6 +258,17 @@ class ICommandManager(object):
     def __next__(self):
         return self.next_action()
 
+    def __iter__(self):
+        """ get all commands as if nothing goes wrong
+            bkwd compat for static file / misc testing
+        """
+        action = self.next_action()
+        while action is not None:
+            assert isinstance(action, list), 'not a list'
+            yield action
+            self.on_success(action)
+            action = self.next_action()
+
     def __len__(self):
         return 1 if not self._state.is_done else 0
 

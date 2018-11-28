@@ -57,15 +57,9 @@ class KDTreeIndex(QueuePropogator):
         self._data = []
         self._index = []
         self._root = None
-
-    def get_node(self, nid):
-        return node_with_id(self._root, nid)
+        self._is_built = False
 
     def __getitem__(self, index):
-        node_id = self._index[index]
-        return self.get_node(node_id)
-
-    def get_index_id(self, index):
         return self._index[index]
 
     @property
@@ -74,11 +68,12 @@ class KDTreeIndex(QueuePropogator):
 
     def query_ball_tree(self, other, r):
         """"""
-        return self._res.query_ball_tree(other._res, r)
+        if self._is_built is True and other._is_built is True:
+            return self._res.query_ball_tree(other._res, r)
 
     # walking interface ----------------
     def on_first(self, node, **kwargs):
-        self._root = node
+        self._root = node.id
         if not isinstance(node, list):
             return [node]
         return node
@@ -89,8 +84,9 @@ class KDTreeIndex(QueuePropogator):
         return node
 
     def on_complete(self, node):
+        self._is_built = True
         self._res = kdtree.KDTree(np.array(self._data))
-        return self._res
+        return self
 
 
 class MovementQ(QueuePropogator):

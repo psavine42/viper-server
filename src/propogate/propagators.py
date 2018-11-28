@@ -206,8 +206,8 @@ class Chain(object):
 
     def __call__(self, root):
         for prop in self._props:
-            prop(root)
-
+            root = prop(root)
+        return root
 
 
 
